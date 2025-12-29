@@ -4,7 +4,48 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 
+from .models import *
+
+
 User = get_user_model()
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = '__all__'
+
+
+class GradeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Grade
+        fields = ['id', 'name']
+
+
+class PositionSerializer(serializers.ModelSerializer):
+    grades = GradeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Grade
+        fields = ['id', 'name', 'grades']
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = '__all__'
+
+
+class DepartmentRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DepartmentRole
+        fields = '__all__'
+
+
+class CountrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Country
+        fields = '__all__'
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -45,3 +86,30 @@ class LogoutSerializer(serializers.Serializer):
 			RefreshToken(self.token).blacklist()
 		except TokenError:
 			self.fail('Incorrect token')
+
+
+class UserSerializer(serializers.ModelSerializer):
+    role = serializers.ReadOnlyField(source='role.name')
+    position = serializers.ReadOnlyField(source='position.name')
+    grade = serializers.ReadOnlyField(source='grade.name')
+    department = serializers.ReadOnlyField(source='department.name')
+    department_role = serializers.ReadOnlyField(source='department_role.name')
+    country = serializers.ReadOnlyField(source='country.code')
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'role',
+            'position',
+            'grade',
+            'department',
+            'department_role',
+            'country',
+            'date_joined',
+            'date_left',
+            'is_active',
+        ]
