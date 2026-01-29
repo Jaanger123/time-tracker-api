@@ -6,6 +6,7 @@ from .views import *
 
 
 router = DefaultRouter()
+router.register('projects', ProjectViewSet)
 router.register('statuses', ProjectStatusViewSet)
 router.register('service-lines', ServiceLineViewSet)
 router.register('task-types', TaskTypeViewSet)
@@ -13,8 +14,6 @@ router.register('tasks', TaskViewSet)
 
 
 urlpatterns = [
-    path('', ProjectListView.as_view(), name='projects-list'),
-
     # ViewSets
     path('', include(router.urls))
 ]

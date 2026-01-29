@@ -22,6 +22,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/docs/', schema_view.with_ui()),
+    path('api/calendars/', include('apps.calendars.urls')),
     path('api/accounts/', include('apps.accounts.urls')),
     path('api/projects/', include('apps.projects.urls')),
     path('api/clients/', include('apps.clients.urls')),

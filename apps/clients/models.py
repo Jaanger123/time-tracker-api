@@ -18,7 +18,6 @@ class Client(models.Model):
     group = models.CharField(max_length=150)
     personal_number = models.CharField(max_length=150)
     sector = models.ForeignKey(Sector, on_delete=models.SET_NULL, null=True, blank=True)
-    manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return self.name

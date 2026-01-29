@@ -1,4 +1,5 @@
-from turtle import position
+import uuid
+
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
@@ -63,6 +64,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now, editable=False)
     date_left = models.DateTimeField(blank=True, null=True)
+    activation_code = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        null=True,
+        blank=True,
+    )
 
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True)

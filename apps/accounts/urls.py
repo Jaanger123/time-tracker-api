@@ -10,6 +10,7 @@ from .views import *
 
 
 router = DefaultRouter()
+router.register('users', UserViewSet)
 router.register('roles', RoleViewSet)
 router.register('positions', PositionViewSet)
 router.register('grades', GradeViewSet)
@@ -18,11 +19,11 @@ router.register('department-roles', DepartmentRoleViewSet)
 router.register('countries', CountryViewSet)
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='register'),
+    # path('register/', RegisterView.as_view(), name='register'),
+    path('activate/', ActivateUserAPIView.as_view(), name='activate_account'),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', LogoutView.as_view(), name='logout'),
-    path('users/', UserListView.as_view(), name='users-list'),
 
     # ViewSets
     path('', include(router.urls))

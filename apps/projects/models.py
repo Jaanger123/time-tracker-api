@@ -34,7 +34,7 @@ class TaskType(models.Model):
 
 
 class Task(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     task_type = models.ForeignKey(TaskType, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
@@ -45,6 +45,7 @@ class Project(models.Model):
     name = models.CharField(max_length=150)
     code = models.CharField(max_length=100, unique=True)
     description = models.TextField()
+    project_color = models.CharField(max_length=7, default='#787878')
     is_chargeable = models.BooleanField(null=True, blank=True)
     status = models.ForeignKey(ProjectStatus, on_delete=models.SET_NULL, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)

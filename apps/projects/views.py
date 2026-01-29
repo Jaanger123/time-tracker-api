@@ -1,6 +1,7 @@
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.generics import ListAPIView
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from .serializers import *
 from .models import *
@@ -31,8 +32,22 @@ class TaskViewSet(ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
+    @action(detail=False, methods=['get'])
+    def internal(self, request):
+        tasks = Task.objects.filter(task_type__name='Internal')
+        serializer = TaskSerializer(tasks, many=True)
 
-class ProjectListView(ListAPIView):
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def leave(self, request):
+        tasks = Task.objects.filter(task_type__name='Leave')
+        serializer = TaskSerializer(tasks, many=True)
+
+        return Response(serializer.data)
+
+
+class ProjectViewSet(ModelViewSet):
     queryset = Project.objects.all().select_related(
         'status', 
         'country', 
@@ -44,3 +59,12 @@ class ProjectListView(ListAPIView):
     )
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            if self.action == 'retrieve':
+                return ProjectDetailSerializer
+
+            return ProjectSerializer
+
+        return ProjectCreateSerializer
