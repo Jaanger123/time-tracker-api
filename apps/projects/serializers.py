@@ -26,8 +26,23 @@ class TaskTypeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-class TaskSerializer(serializers.ModelSerializer):
-    task_type = serializers.ReadOnlyField(source='task_type.id')
+class TaskReadSerializer(serializers.ModelSerializer):
+    task_type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Task
+        fields = ['id', 'name', 'task_type']
+
+    def get_task_type(self, obj):
+        return obj.task_type.id if obj.task_type else None
+
+
+class TaskCreateSerializer(serializers.ModelSerializer):
+    task_type = serializers.PrimaryKeyRelatedField(
+        queryset=TaskType.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Task
@@ -141,4 +156,4 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     def get_tasks(self, obj):
         tasks = Task.objects.filter(task_type=obj.task_type)
 
-        return TaskSerializer(tasks, many=True).data
+        return TaskReadSerializer(tasks, many=True).data

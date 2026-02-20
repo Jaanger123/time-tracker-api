@@ -29,22 +29,28 @@ class TaskViewSet(ModelViewSet):
     queryset = Task.objects.all().select_related(
         'task_type'
     )
-    serializer_class = TaskSerializer
+    serializer_class = TaskReadSerializer
     permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=['get'])
     def internal(self, request):
         tasks = Task.objects.filter(task_type__name='Internal')
-        serializer = TaskSerializer(tasks, many=True)
+        serializer = TaskReadSerializer(tasks, many=True)
 
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def leave(self, request):
         tasks = Task.objects.filter(task_type__name='Leave')
-        serializer = TaskSerializer(tasks, many=True)
+        serializer = TaskReadSerializer(tasks, many=True)
 
         return Response(serializer.data)
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return TaskReadSerializer
+
+        return TaskCreateSerializer
 
 
 class ProjectViewSet(ModelViewSet):
