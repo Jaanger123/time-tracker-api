@@ -4,3 +4,4 @@ from .models import *
 
 
 admin.site.register(TimeEntry)
+admin.site.register(Calendar)

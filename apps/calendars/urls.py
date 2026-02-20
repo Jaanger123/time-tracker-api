@@ -7,8 +7,9 @@ from .views import *
 
 router = DefaultRouter()
 router.register('time-entries', TimeEntryViewSet)
+router.register('calendars', CalendarViewSet)
 
 urlpatterns = [
     # ViewSets
-    path('', include(router.urls))
+    path('', include(router.urls)),
 ]

@@ -109,3 +109,80 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeEntry
         exclude = ['user']
+
+
+class CalendarSerializer(serializers.ModelSerializer):
+    date = serializers.SerializerMethodField()
+    input_date = serializers.DateField(write_only=True)
+
+    class Meta:
+        model = Calendar
+        fields = [
+            'id',
+            'date',
+            'input_date',
+            'holiday_name',
+            'day_type',
+            'description',
+            'is_recurring',
+            'country',
+        ]
+
+    def get_date(self, obj):
+        if obj.year:
+            return f'{obj.year}-{obj.month:02}-{obj.day:02}'
+
+        return f'{obj.month:02}-{obj.day:02}'
+
+    def validate(self, data):
+        if self.instance is None and 'input_date' not in data:
+            raise serializers.ValidationError(
+                {'input_date': 'This field is required.'}
+            )
+
+        date = data.get('input_date')
+        is_recurring = data.get('is_recurring')
+        day_type = data.get('day_type')
+        holiday_name = data.get('holiday_name')
+
+        if self.instance is None and \
+        day_type == Calendar.DayType.HOLIDAY and \
+        not holiday_name:
+            raise ValidationError(
+                {'holiday_name': 'Holiday name is required for holidays.'}
+            )
+
+        if self.instance is None and \
+        day_type != Calendar.DayType.HOLIDAY and \
+        holiday_name:
+            raise ValidationError(
+                {'holiday_name': 'Holiday name is allowed only for holidays.'}
+            )
+
+        if self.instance and not date and is_recurring == False:
+            raise ValidationError(
+                {'input_date': 'Recurring event can not exist without a year.'}
+            )
+
+        if self.instance and day_type != Calendar.DayType.HOLIDAY:
+            data['holiday_name'] = None
+
+        if date:
+            data['month'] = date.month
+            data['day'] = date.day
+            data['year'] = None if is_recurring else date.year
+
+        elif is_recurring == True and self.instance:
+            data['year'] = None
+
+        return data
+
+    def create(self, validated_data):
+        validated_data.pop('input_date')
+
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('input_date', None)
+
+        return super().update(instance, validated_data)
