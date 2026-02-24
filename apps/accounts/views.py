@@ -28,9 +28,17 @@ class PositionViewSet(ModelViewSet):
 
 
 class GradeViewSet(ModelViewSet):
-    queryset = Grade.objects.all()
-    serializer_class = GradeSerializer
+    queryset = Grade.objects.all().select_related(
+        'position'
+    )
+    serializer_class = GradeReadSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return GradeReadSerializer
+
+        return GradeCreateSerializer
 
 
 class DepartmentViewSet(ModelViewSet):

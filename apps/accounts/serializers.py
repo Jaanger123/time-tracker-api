@@ -18,14 +18,38 @@ class RoleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class GradeSerializer(serializers.ModelSerializer):
+class GradeReadSerializer(serializers.ModelSerializer):
+    position = serializers.SerializerMethodField()
+
     class Meta:
         model = Grade
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'position']
+
+    def get_position(self, obj):
+        return obj.position.id if obj.position else None
+
+
+class GradeCreateSerializer(serializers.ModelSerializer):
+    position = serializers.PrimaryKeyRelatedField(
+        queryset=Position.objects.all(),
+        required=True,
+        allow_null=False,
+    )
+
+    class Meta:
+        model = Grade
+        fields = ['id', 'name', 'position']
+
+
+# class GradeSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Grade
+#         fields = ['id', 'name']
 
 
 class PositionSerializer(serializers.ModelSerializer):
-    grades = GradeSerializer(many=True, read_only=True)
+    # grades = GradeSerializer(many=True, read_only=True)
+    grades = GradeReadSerializer(many=True, read_only=True)
 
     class Meta:
         model = Grade
