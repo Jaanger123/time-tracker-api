@@ -52,7 +52,7 @@ class PositionSerializer(serializers.ModelSerializer):
     grades = GradeReadSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Grade
+        model = Position
         fields = ['id', 'name', 'grades']
 
 
