@@ -1,38 +1,255 @@
+from collections import defaultdict
+
+from datetime import datetime
+
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font
+import openpyxl
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from django.http import HttpResponse
+from django.db.models import Sum, Max, Q
+from django.db.models import F
+
+from .utils import get_working_days_list
 from .permissions import IsOwnerOrAdmin
 from .serializers import *
 from .models import *
 
 
+
 class TimeEntryViewSet(ModelViewSet):
     queryset = TimeEntry.objects.all().select_related(
+        'user',
         'country',
         'client',
         'project',
         'task_type',
         'task'
     )
-    serializer_class = TimeEntryUserSerializer
+    serializer_class = TimeEntryReadSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+
+    def _generate_excel(self, queryset):
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = 'Timesheet Report'
+
+        columns = [
+            'date',
+            'user_email',
+            'country_code',
+            'user_department',
+            'position',
+            'detailed_grade',
+            'hours',
+            'project_department',
+            'client_name',
+            'project_name',
+            'project_code',
+            'project_service_line',
+            'task_type_name',
+            'task_name',
+            'description',
+        ]
+
+        headers = [
+            'Date',
+            'User Email',
+            'Country',
+            'User Department',
+            'Position',
+            'Grade',
+            'Hours',
+            'Project Department',
+            'Client',
+            'Project',
+            'Project Code',
+            'Service Line',
+            'Task Type',
+            'Task',
+            'Description',
+        ]
+
+        sheet.append(headers)
+
+        for col in range(1, len(headers) + 1):
+            sheet.cell(row=1, column=col).font = Font(bold=True)
+
+        for row in queryset:
+            sheet.append([row.get(col) for col in columns])
+
+        for column_cells in sheet.columns:
+            length = max(len(str(cell.value)) if cell.value else 0 for cell in column_cells)
+            sheet.column_dimensions[get_column_letter(column_cells[0].column)].width = length + 2
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=timesheet_report.xlsx'
+
+        workbook.save(response)
+        return response
+
+    @action(detail=False, methods=['get'])
+    def report(self, request):
+        queryset = (
+            TimeEntry.objects
+            .select_related(
+                'user',
+                'country',
+                'client',
+                'project',
+                'task_type',
+                'task'
+            )
+            .annotate(
+                user_email=F('user__email'),
+                country_code=F('country__code'),
+                user_department=F('user__department__name'),
+                position=F('user__position__name'),
+                detailed_grade=F('user__grade__name'),
+                client_name=F('client__name'),
+                project_department=F('project__department__name'),
+                project_name=F('project__name'),
+                project_code=F('project__code'),
+                project_service_line=F('project__service_line__name'),
+                task_type_name=F('task_type__name'),
+                task_name=F('task__name'),
+            )
+            .values(
+                'date',
+                'user_email',
+                'country_code',
+                'user_department',
+                'position',
+                'detailed_grade',
+                'hours',
+                'project_department',
+                'client_name',
+                'project_name',
+                'project_code',
+                'project_service_line',
+                'task_type_name',
+                'task_name',
+                'description',
+            )
+            .order_by('user_email', 'date')
+        )
+
+        format_type = request.query_params.get('export', 'json')
+
+        if format_type == 'excel':
+            return self._generate_excel(queryset)
+
+        return Response(list(queryset))
+
+    @action(detail=False, methods=['get'])
+    def monitoring(self, request):
+        DAILY_HOURS = 8 # should get from global settings
+
+        start_date = datetime.strptime(request.query_params.get('start_date'), '%Y-%m-%d').date()
+        end_date = datetime.strptime(request.query_params.get('end_date'), '%Y-%m-%d').date()
+        country_id = request.query_params.get('country_id')
+
+        queryset = (
+            User.objects
+            .filter(
+                country=country_id
+            )
+            .annotate(
+                total_hours=Sum(
+                    'time_entries__hours',
+                    filter=Q(time_entries__date__range=(start_date, end_date))
+                ),
+                last_updated=Max(
+                    'time_entries__updated_at',
+                    filter=Q(time_entries__date__range=(start_date, end_date))
+                )
+            )
+            .values(
+                user_email=F('email'),
+                user_id=F('id'),
+                total_hours=F('total_hours'),
+                last_updated=F('last_updated'),
+            )
+            .order_by('email')
+        )
+
+        time_entries = (
+            TimeEntry.objects
+            .filter(
+                user__country=country_id,
+                date__range=(start_date, end_date)
+            )
+            .values(
+                'user_id', 
+                'date'
+            )
+            .annotate(
+                total_hours=Sum('hours')
+            )
+        )
+
+        entries_by_user = defaultdict(dict)
+
+        for row in time_entries:
+            entries_by_user[row['user_id']][row['date']] = row['total_hours']
+
+        working_days_list = get_working_days_list(start_date, end_date, country_id)
+        required_hours = len(working_days_list) * DAILY_HOURS
+        data = []
+
+        for row in queryset:
+            user_id = row['user_id']
+            user_entries = entries_by_user.get(user_id, {})
+
+            missing_days = []
+
+            for day in working_days_list:
+                hours = user_entries.get(day, 0)
+
+                if hours < DAILY_HOURS:
+                    missing_days.append({
+                        'date': day,
+                        'worked_hours': hours,
+                        'missing_hours': DAILY_HOURS - hours
+                    })
+
+            if row['total_hours'] is None:
+                row['total_hours'] = 0
+
+            row['missing_days'] = missing_days
+            row['missing_days_count'] = len(missing_days)
+            total = row['total_hours']
+
+            completion = (total / required_hours) if required_hours > 0 else 0
+
+            row['required_hours'] = required_hours
+            row['completion'] = round(completion * 100, 2)
+
+            data.append(row)
+
+        return Response(data)
 
     def get_serializer_class(self):
         user = self.request.user
 
         if self.action in ['list', 'retrieve']:
             if user.is_staff:
-                return TimeEntryAdminSerializer
+                return TimeEntryAdminReadSerializer
 
-            return TimeEntryUserSerializer
+            return TimeEntryReadSerializer
 
         return TimeEntryCreateSerializer
 
     def get_queryset(self):
         user = self.request.user
-        
+
         base_queryset = TimeEntry.objects.select_related(
             'country',
             'client',
@@ -48,6 +265,10 @@ class TimeEntryViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
 
 
 class CalendarViewSet(ModelViewSet):

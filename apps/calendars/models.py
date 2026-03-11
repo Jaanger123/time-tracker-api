@@ -1,5 +1,4 @@
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.db import models
 
@@ -11,6 +10,27 @@ from apps.clients.models import Client
 User = get_user_model()
 
 
+class GlobalSettings(models.Model):
+    hours_per_day = models.DecimalField(max_digits=4, decimal_places=2, default=8)
+    working_days_of_week = models.JSONField(
+        default=list,
+        help_text='Weekday numbers (0=Mon ... 6=Sun)'
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def get_settings(cls):
+        obj, created = cls.objects.get_or_create(
+            id=1,
+            defaults={
+                'hours_per_day': 8,
+                'working_days_of_week': [0,1,2,3,4]
+            }
+        )
+
+        return obj
+
+
 class TimeEntry(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='time_entries')
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
@@ -19,16 +39,17 @@ class TimeEntry(models.Model):
     task_type = models.ForeignKey(TaskType, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
     weekends_included = models.BooleanField(default=False)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    date = models.DateField(null=True, blank=True)
     hours = models.IntegerField()
     description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = _('Time entries')
 
     def __str__(self):
-        return f'{self.user.email}: {self.start_date} - {self.end_date}'
+        return f'{self.user.email}: {self.date}'
 
 
 class Calendar(models.Model):

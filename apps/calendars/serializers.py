@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
+from django.db import transaction
 
 from rest_framework import serializers
 
@@ -8,7 +11,7 @@ from .models import *
 User = get_user_model()
 
 
-class TimeEntryUserSerializer(serializers.ModelSerializer):
+class TimeEntryReadSerializer(serializers.ModelSerializer):
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
     project = serializers.SerializerMethodField()
@@ -43,7 +46,7 @@ class TimeEntryUserSerializer(serializers.ModelSerializer):
         return obj.task.name if obj.task else None
 
 
-class TimeEntryAdminSerializer(serializers.ModelSerializer):
+class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.email')
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
@@ -80,6 +83,9 @@ class TimeEntryAdminSerializer(serializers.ModelSerializer):
 
 
 class TimeEntryCreateSerializer(serializers.ModelSerializer):
+    start_date = serializers.DateField(required=False, write_only=True)
+    end_date = serializers.DateField(required=False, write_only=True)
+
     country = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
         required=False,
@@ -109,6 +115,64 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeEntry
         exclude = ['user']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        start_date = attrs.get('start_date')
+        end_date = attrs.get('end_date')
+        date = attrs.get('date')
+
+        if request.method in ['PUT', 'PATCH']:
+            return attrs
+
+        if not date and (not start_date or not end_date):
+            raise serializers.ValidationError(
+                'Provide \'{date}\' or \'start_date\' and \'end_date\'.'
+            )
+
+        if start_date and end_date:
+            if start_date > end_date:
+                raise serializers.ValidationError(
+                    '\'start_date\' cannot be greater than \'end_date\'.'
+                )
+
+        return attrs
+
+    def create(self, validated_data):
+        weekends_included = validated_data.get('weekends_included', False)
+        start_date = validated_data.pop('start_date', None)
+        end_date = validated_data.pop('end_date', None)
+
+        if not start_date or not end_date:
+            return TimeEntry.objects.create(
+                **validated_data
+            )
+
+        entries = []
+        current_date = start_date
+
+        while current_date <= end_date:
+            if not weekends_included and current_date.weekday() >= 5:
+                current_date += timedelta(days=1)
+                continue
+
+            entries.append(
+                TimeEntry(
+                    date=current_date,
+                    **validated_data
+                )
+            )
+            current_date += timedelta(days=1)
+
+        if not entries:
+            raise serializers.ValidationError(
+                'Selected range contains only weekends and weekends are not included.'
+            )
+
+        with transaction.atomic():
+            TimeEntry.objects.bulk_create(entries)
+
+        return entries[-1]
 
 
 class CalendarSerializer(serializers.ModelSerializer):
@@ -148,19 +212,19 @@ class CalendarSerializer(serializers.ModelSerializer):
         if self.instance is None and \
         day_type == Calendar.DayType.HOLIDAY and \
         not holiday_name:
-            raise ValidationError(
+            raise serializers.ValidationError(
                 {'holiday_name': 'Holiday name is required for holidays.'}
             )
 
         if self.instance is None and \
         day_type != Calendar.DayType.HOLIDAY and \
         holiday_name:
-            raise ValidationError(
+            raise serializers.ValidationError(
                 {'holiday_name': 'Holiday name is allowed only for holidays.'}
             )
 
         if self.instance and not date and is_recurring == False:
-            raise ValidationError(
+            raise serializers.ValidationError(
                 {'input_date': 'Recurring event can not exist without a year.'}
             )
 
