@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.db.models import Q
 
-from .models import Calendar
+from .models import Calendar, GlobalSettings
 
 
 def get_working_days_list(start_date, end_date, country, working_weekdays={0, 1, 2, 3, 4}):

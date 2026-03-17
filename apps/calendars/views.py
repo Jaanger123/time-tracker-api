@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
 
 from django.http import HttpResponse
 from django.db.models import Sum, Max, Q
@@ -20,6 +22,38 @@ from .permissions import IsOwnerOrAdmin
 from .serializers import *
 from .models import *
 
+
+class GlobalSettingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        settings = GlobalSettings.get_settings()
+        serializer = GlobalSettingsSerializer(settings)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        settings = GlobalSettings.get_settings()
+        serializer = GlobalSettingsSerializer(
+            settings,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        settings = GlobalSettings.get_settings()
+        serializer = GlobalSettingsSerializer(settings, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TimeEntryViewSet(ModelViewSet):
@@ -150,7 +184,9 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def monitoring(self, request):
-        DAILY_HOURS = 8 # should get from global settings
+        settings = GlobalSettings.get_settings()
+        daily_hours = settings.hours_per_day
+        working_days = set(settings.working_days_of_week)
 
         start_date = datetime.strptime(request.query_params.get('start_date'), '%Y-%m-%d').date()
         end_date = datetime.strptime(request.query_params.get('end_date'), '%Y-%m-%d').date()
@@ -200,8 +236,8 @@ class TimeEntryViewSet(ModelViewSet):
         for row in time_entries:
             entries_by_user[row['user_id']][row['date']] = row['total_hours']
 
-        working_days_list = get_working_days_list(start_date, end_date, country_id)
-        required_hours = len(working_days_list) * DAILY_HOURS
+        working_days_list = get_working_days_list(start_date, end_date, country_id, working_days)
+        required_hours = len(working_days_list) * daily_hours
         data = []
 
         for row in queryset:
@@ -213,11 +249,11 @@ class TimeEntryViewSet(ModelViewSet):
             for day in working_days_list:
                 hours = user_entries.get(day, 0)
 
-                if hours < DAILY_HOURS:
+                if hours < daily_hours:
                     missing_days.append({
                         'date': day,
                         'worked_hours': hours,
-                        'missing_hours': DAILY_HOURS - hours
+                        'missing_hours': daily_hours - hours
                     })
 
             if row['total_hours'] is None:

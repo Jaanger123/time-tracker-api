@@ -8,6 +8,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 
+from services.email_service import send_activation_email
+
 from .serializers import *
 from .models import *
 
@@ -146,3 +148,8 @@ class UserViewSet(ModelViewSet):
             return [IsAuthenticated()]
 
         return [IsAdminUser()]
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+
+        send_activation_email(user)

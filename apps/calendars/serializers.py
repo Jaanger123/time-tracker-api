@@ -11,6 +11,17 @@ from .models import *
 User = get_user_model()
 
 
+class GlobalSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GlobalSettings
+        fields = [
+            'hours_per_day',
+            'working_days_of_week',
+            'updated_at',
+        ]
+        read_only_fields = ['updated_at']
+
+
 class TimeEntryReadSerializer(serializers.ModelSerializer):
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
