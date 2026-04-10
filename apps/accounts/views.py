@@ -151,5 +151,4 @@ class UserViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         user = serializer.save()
-
-        send_activation_email(user)
+        # send_activation_email(user)

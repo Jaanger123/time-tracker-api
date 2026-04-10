@@ -10,25 +10,36 @@ from apps.clients.models import Client
 User = get_user_model()
 
 
-class GlobalSettings(models.Model):
-    hours_per_day = models.DecimalField(max_digits=4, decimal_places=2, default=8)
-    working_days_of_week = models.JSONField(
-        default=list,
+class CountrySettings(models.Model):
+    hours_per_day = models.PositiveSmallIntegerField(default=8)
+    working_days = models.JSONField(
+        default=[0, 1, 2, 3, 4],
         help_text='Weekday numbers (0=Mon ... 6=Sun)'
     )
     updated_at = models.DateTimeField(auto_now=True)
+    country = models.OneToOneField(
+        Country,
+        on_delete=models.CASCADE,
+        related_name='settings'
+    )
+
+    class Meta:
+        verbose_name_plural = _('Country settings')
 
     @classmethod
-    def get_settings(cls):
+    def get_settings(cls, country_id):
         obj, created = cls.objects.get_or_create(
-            id=1,
+            country_id=country_id,
             defaults={
                 'hours_per_day': 8,
-                'working_days_of_week': [0,1,2,3,4]
+                'working_days': [0, 1, 2, 3, 4],
             }
         )
 
         return obj
+
+    def __str__(self):
+        return f'{self.country} settings'
 
 
 class TimeEntry(models.Model):

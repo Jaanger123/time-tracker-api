@@ -14,26 +14,37 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from django.http import HttpResponse
-from django.db.models import Sum, Max, Q
-from django.db.models import F
+from django.db.models import Sum, Max, Q, F, OuterRef, Subquery
 
-from .utils import get_working_days_list
+from .utils import get_working_days_list, get_country
+from apps.projects.models import ProjectCode
 from .permissions import IsOwnerOrAdmin
 from .serializers import *
 from .models import *
 
 
-class GlobalSettingsView(APIView):
+class CountrySettingsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        settings = GlobalSettings.get_settings()
-        serializer = GlobalSettingsSerializer(settings)
+        country, error = get_country(request)
+
+        if error:
+            return error
+
+        settings = CountrySettings.get_settings(country.id)
+        serializer = CountrySettingsSerializer(settings)
+
         return Response(serializer.data)
 
     def patch(self, request):
-        settings = GlobalSettings.get_settings()
-        serializer = GlobalSettingsSerializer(
+        country, error = get_country(request)
+
+        if error:
+            return error
+
+        settings = CountrySettings.get_settings(country.id)
+        serializer = CountrySettingsSerializer(
             settings,
             data=request.data,
             partial=True
@@ -46,8 +57,13 @@ class GlobalSettingsView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request):
-        settings = GlobalSettings.get_settings()
-        serializer = GlobalSettingsSerializer(settings, data=request.data)
+        country, error = get_country(request)
+
+        if error:
+            return error
+
+        settings = CountrySettings.get_settings(country.id)
+        serializer = CountrySettingsSerializer(settings, data=request.data)
 
         if serializer.is_valid():
             serializer.save()
@@ -131,6 +147,10 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def report(self, request):
+        latest_code_subquery = ProjectCode.objects.filter(
+            project=OuterRef('project_id')
+        ).order_by('-created_at').values('code')[:1]
+
         queryset = (
             TimeEntry.objects
             .select_related(
@@ -150,7 +170,7 @@ class TimeEntryViewSet(ModelViewSet):
                 client_name=F('client__name'),
                 project_department=F('project__department__name'),
                 project_name=F('project__name'),
-                project_code=F('project__code'),
+                project_code=Subquery(latest_code_subquery),
                 project_service_line=F('project__service_line__name'),
                 task_type_name=F('task_type__name'),
                 task_name=F('task__name'),
@@ -184,13 +204,13 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def monitoring(self, request):
-        settings = GlobalSettings.get_settings()
+        country_id = request.query_params.get('country_id')
+        settings = CountrySettings.get_settings(country_id)
         daily_hours = settings.hours_per_day
-        working_days = set(settings.working_days_of_week)
+        working_days = set(settings.working_days)
 
         start_date = datetime.strptime(request.query_params.get('start_date'), '%Y-%m-%d').date()
         end_date = datetime.strptime(request.query_params.get('end_date'), '%Y-%m-%d').date()
-        country_id = request.query_params.get('country_id')
 
         queryset = (
             User.objects
@@ -325,3 +345,29 @@ class CalendarViewSet(ModelViewSet):
                 for value, label in Calendar.DayType.choices
             ]
         })
+
+    @action(detail=False, methods=['get'])
+    def holidays(self, request):
+        user = request.user
+
+        filtered_queryset = Calendar.objects.filter(day_type=Calendar.DayType.HOLIDAY)
+
+        if not user.is_staff:
+            filtered_queryset = filtered_queryset.filter(country=user.country.id)
+
+        serializer = self.get_serializer(filtered_queryset, many=True)
+
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='working-weekends')
+    def working_weekends(self, request):
+        user = request.user
+
+        filtered_queryset = Calendar.objects.filter(day_type=Calendar.DayType.WORKING_WEEKEND)
+
+        if not user.is_staff:
+            filtered_queryset = filtered_queryset.filter(country=user.country.id)
+
+        serializer = self.get_serializer(filtered_queryset, many=True)
+
+        return Response(serializer.data)

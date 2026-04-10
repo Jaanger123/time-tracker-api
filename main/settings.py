@@ -1,5 +1,6 @@
 from pathlib import Path
 from decouple import config
+from celery.schedules import crontab
 import datetime
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -169,6 +170,19 @@ SWAGGER_SETTINGS = {
     },
 }
 
+# Celery
+CELERY_BEAT_SCHEDULE = {
+    'generate-project-codes-monthly': {
+        'task': 'apps.projects.tasks.generate_monthly_project_codes',
+        'schedule': crontab(minute=0, hour=0, day_of_month=1),
+    },
+}
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
 # Gmail SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.office365.com'
@@ -179,3 +193,4 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+EMAIL_USE_SSL = False

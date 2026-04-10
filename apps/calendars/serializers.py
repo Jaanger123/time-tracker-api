@@ -11,15 +11,22 @@ from .models import *
 User = get_user_model()
 
 
-class GlobalSettingsSerializer(serializers.ModelSerializer):
+class CountrySettingsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = GlobalSettings
+        model = CountrySettings
         fields = [
+            'country',
             'hours_per_day',
-            'working_days_of_week',
+            'working_days',
             'updated_at',
         ]
         read_only_fields = ['updated_at']
+
+    def validate_working_days(self, value):
+        if not all(0 <= day <= 6 for day in value):
+            raise serializers.ValidationError('Days must be between 0 and 6')
+
+        return value
 
 
 class TimeEntryReadSerializer(serializers.ModelSerializer):
@@ -48,7 +55,7 @@ class TimeEntryReadSerializer(serializers.ModelSerializer):
         return obj.project.project_color if obj.project else None
 
     def get_project_code(self, obj):
-        return obj.project.code if obj.project else None
+        return obj.project.get_last_project_code() if obj.project else None
 
     def get_task_type(self, obj):
         return obj.task_type.name if obj.task_type else None
@@ -84,7 +91,7 @@ class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
         return obj.project.project_color if obj.project else None
 
     def get_project_code(self, obj):
-        return obj.project.code if obj.project else None
+        return obj.project.get_last_project_code() if obj.project else None
 
     def get_task_type(self, obj):
         return obj.task_type.name if obj.task_type else None

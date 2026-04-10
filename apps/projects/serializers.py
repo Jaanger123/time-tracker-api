@@ -49,7 +49,18 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'task_type']
 
 
-class ProjectSerializer(serializers.ModelSerializer):
+class ProjectCodeReadSerializer(serializers.ModelSerializer):
+    project = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectCode
+        fields = ['id', 'code', 'project', 'created_at']
+
+    def get_project(self, obj):
+        return obj.project.id if obj.project else None
+
+
+class ProjectReadSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
     manager = serializers.SerializerMethodField()
@@ -57,6 +68,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     department = serializers.SerializerMethodField()
     service_line = serializers.SerializerMethodField()
     task_type = serializers.SerializerMethodField()
+    codes = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -82,6 +94,13 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_task_type(self, obj):
         return obj.task_type.name if obj.task_type else None
+
+    # def get_code(self, obj):
+    #     return obj.get_last_project_code()
+    def get_codes(self, obj):
+        codes = ProjectCode.objects.filter(project=obj.id).order_by('created_at')
+
+        return ProjectCodeReadSerializer(codes, many=True).data
 
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
@@ -134,13 +153,13 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     department = serializers.ReadOnlyField(source='department.name')
     service_line = serializers.ReadOnlyField(source='service_line.name')
     tasks = serializers.SerializerMethodField()
+    codes = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = [
             'id',
             'name',
-            'code',
             'description',
             'project_color',
             'is_chargeable',
@@ -151,9 +170,15 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'department',
             'service_line',
             'tasks',
+            'codes',
         ]
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(task_type=obj.task_type)
 
         return TaskReadSerializer(tasks, many=True).data
+
+    def get_codes(self, obj):
+        codes = ProjectCode.objects.filter(project=obj.id).order_by('created_at')
+
+        return ProjectCodeReadSerializer(codes, many=True).data

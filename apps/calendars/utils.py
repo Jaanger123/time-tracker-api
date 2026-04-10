@@ -1,8 +1,12 @@
 from datetime import timedelta
 
+from rest_framework.response import Response
+from rest_framework import status
+
 from django.db.models import Q
 
-from .models import Calendar, GlobalSettings
+from apps.accounts.models import Country
+from .models import Calendar
 
 
 def get_working_days_list(start_date, end_date, country, working_weekdays={0, 1, 2, 3, 4}):
@@ -48,3 +52,23 @@ def get_working_days_list(start_date, end_date, country, working_weekdays={0, 1,
         current += timedelta(days=1)
 
     return total_days
+
+def get_country(request):
+    country_id = request.query_params.get('country')
+
+    if not country_id:
+        return None, Response(
+            {'error': '\'country\' query param is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        country = Country.objects.get(id=country_id)
+
+        return country, None
+
+    except Country.DoesNotExist:
+        return None, Response(
+            {'error': 'Country not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )

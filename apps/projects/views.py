@@ -63,7 +63,7 @@ class ProjectViewSet(ModelViewSet):
         'service_line',
         'task_type'
     )
-    serializer_class = ProjectSerializer
+    serializer_class = ProjectReadSerializer
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -71,6 +71,6 @@ class ProjectViewSet(ModelViewSet):
             if self.action == 'retrieve':
                 return ProjectDetailSerializer
 
-            return ProjectSerializer
+            return ProjectReadSerializer
 
         return ProjectCreateSerializer

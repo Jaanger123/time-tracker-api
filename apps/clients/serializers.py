@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
-from apps.projects.serializers import ProjectSerializer
+from apps.projects.serializers import ProjectReadSerializer
 from .models import Client, Sector
 
 
@@ -27,7 +27,7 @@ class ClientSerializer(serializers.ModelSerializer):
 
 
 class ClientDetailSerializer(serializers.ModelSerializer):
-    projects = ProjectSerializer(source='project_set', many=True, read_only=True)
+    projects = ProjectReadSerializer(source='project_set', many=True, read_only=True)
 
     class Meta:
         model = Client
