@@ -61,6 +61,9 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 migrations/
+staticfiles/
+static_root/
+media/
 
 # Flask stuff:
 instance/
@@ -207,6 +210,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Redis
+dump.rdb
 
 # User
 notes.txt
+.DS_Store
