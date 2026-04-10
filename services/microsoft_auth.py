@@ -1,4 +1,4 @@
-from decouple import config
+from config.decouple_config import config
 import requests
 
 

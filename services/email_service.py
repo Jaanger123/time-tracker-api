@@ -23,7 +23,7 @@
 
 
 import requests
-from decouple import config
+from config.decouple_config import config
 from .microsoft_auth import get_access_token
 
 
@@ -58,4 +58,3 @@ def send_email(to_email, subject, body):
 
     if response.status_code != 202:
         raise Exception(response.text)
-

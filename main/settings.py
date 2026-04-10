@@ -1,5 +1,5 @@
 from pathlib import Path
-from decouple import config
+from config.decouple_config import config
 from celery.schedules import crontab
 import datetime
 

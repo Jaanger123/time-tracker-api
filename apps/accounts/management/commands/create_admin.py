@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from decouple import config
+from config.decouple_config import config
 
 class Command(BaseCommand):
     help = 'Create initial superuser if not exists'
