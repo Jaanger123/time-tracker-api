@@ -43,7 +43,6 @@ class Task(models.Model):
 
 class Project(models.Model):
     name = models.CharField(max_length=150)
-    # code = models.CharField(max_length=100, unique=True)
     description = models.TextField()
     project_color = models.CharField(max_length=7, default='#787878')
     is_chargeable = models.BooleanField(null=True, blank=True)

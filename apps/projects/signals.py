@@ -1,7 +1,8 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from apps.projects.models import Project
+
 from apps.projects.services.project_code_service import create_initial_code
+from apps.projects.models import Project
 
 
 @receiver(post_save, sender=Project)

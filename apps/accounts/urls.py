@@ -19,7 +19,6 @@ router.register('department-roles', DepartmentRoleViewSet)
 router.register('countries', CountryViewSet)
 
 urlpatterns = [
-    # path('register/', RegisterView.as_view(), name='register'),
     path('activate/', ActivateUserAPIView.as_view(), name='activate_account'),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),

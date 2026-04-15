@@ -41,14 +41,7 @@ class GradeCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'position']
 
 
-# class GradeSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Grade
-#         fields = ['id', 'name']
-
-
 class PositionSerializer(serializers.ModelSerializer):
-    # grades = GradeSerializer(many=True, read_only=True)
     grades = GradeReadSerializer(many=True, read_only=True)
 
     class Meta:
@@ -70,7 +63,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
             department_role__name='Member'
         ).distinct()
 
-        return UserSerializer(members, many=True).data
+        return UserReadSerializer(members, many=True).data
 
     def get_managers(self, obj):
         managers = User.objects.filter(
@@ -78,7 +71,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
             department_role__name='Manager'
         ).distinct()
 
-        return UserSerializer(managers, many=True).data
+        return UserReadSerializer(managers, many=True).data
 
 
 class DepartmentDetailSerializer(serializers.ModelSerializer):
@@ -91,7 +84,7 @@ class DepartmentDetailSerializer(serializers.ModelSerializer):
     def get_members(self, obj):
         members = User.objects.filter(department=obj).distinct()
 
-        return UserSerializer(members, many=True).data
+        return UserReadSerializer(members, many=True).data
 
 
 class DepartmentRoleSerializer(serializers.ModelSerializer):
@@ -117,31 +110,6 @@ class CountryDetailSerializer(serializers.ModelSerializer):
         clients = Client.objects.filter(project__country=obj).distinct()
 
         return ClientSerializer(clients, many=True).data
-
-
-# class RegisterSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(write_only=True, min_length=6)
-#     password_confirm = serializers.CharField(write_only=True, min_length=6)
-
-#     class Meta:
-#         model = User
-#         fields = ('email', 'password', 'password_confirm')
-
-
-#     def validate(self, attrs):
-#         if attrs['password'] != attrs['password_confirm']:
-#             raise serializers.ValidationError({'message': 'Passwords do not match.'})
-
-#         return attrs
-
-#     def create(self, validated_data):
-#         validated_data.pop('password_confirm')
-#         password = validated_data.pop('password')
-#         user = User(**validated_data)
-#         user.set_password(password)
-#         user.save()
-
-#         return user
 
 
 class ActivateUserSerializer(serializers.Serializer):
@@ -172,7 +140,7 @@ class LogoutSerializer(serializers.Serializer):
 			self.fail('Incorrect token')
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserReadSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     position = serializers.SerializerMethodField()
     grade = serializers.SerializerMethodField()
@@ -264,3 +232,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
         )
 
         return user
+
+class SendRemindersSerializer(serializers.Serializer):
+    emails = serializers.ListField(
+        child = serializers.EmailField()
+    )
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+
+
+class SendEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    subject = serializers.CharField()
+    body = serializers.CharField()

@@ -1,4 +1,7 @@
 from datetime import datetime
+
+from django.utils.timezone import now
+
 from apps.projects.models import ProjectCode
 
 
@@ -19,9 +22,9 @@ def create_initial_code(project):
     )
 
 def create_next_month_code(project):
-    # last_code_obj = ProjectCode.objects.filter(
-    #     project=project
-    # ).order_by('-created_at').first()
+    if already_created_this_month(project):
+        return None
+
     last_code = project.get_last_project_code()
 
     if not last_code:
@@ -50,3 +53,12 @@ def can_generate_code(project):
         project.status and
         project.status.name != 'Delivered'
     )
+
+def already_created_this_month(project):
+    today = now()
+
+    return ProjectCode.objects.filter(
+        project=project,
+        created_at__year=today.year,
+        created_at__month=today.month
+    ).exists()

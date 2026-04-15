@@ -4,12 +4,12 @@ from django.contrib.auth import get_user_model
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.generics import GenericAPIView
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 
-# from services.email_service import send_activation_email
-
+from services.email_service import send_activation_email, send_reminder, send_message
 from .serializers import *
 from .models import *
 
@@ -80,17 +80,6 @@ class CountryViewSet(ModelViewSet):
         return CountrySerializer
 
 
-# class RegisterView(APIView):
-# 	def post(self, request):
-# 		data = request.data
-# 		serializer = RegisterSerializer(data=data)
-
-# 		if serializer.is_valid(raise_exception=True):
-# 			serializer.save()
-
-# 			return Response({'message': 'Successfully registered'}, status.HTTP_200_OK)
-
-
 class ActivateUserAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -134,21 +123,66 @@ class UserViewSet(ModelViewSet):
         'department_role', 
         'country'
     )
-    serializer_class = UserSerializer
+    serializer_class = UserReadSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        serializer = UserReadSerializer(request.user)
+
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='send-reminders')
+    def send_reminders(self, request):
+        serializer = SendRemindersSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        not_sent = []
+
+        for email in serializer.validated_data['emails']:
+            is_sent = send_reminder(
+                email, 
+                serializer.validated_data['start_date'], 
+                serializer.validated_data['end_date']
+            )
+
+            if not is_sent:
+                not_sent.append(email)
+
+        message = 'Reminders sent successfully'
+
+        if not_sent:
+            message += f', except: {not_sent}'
+
+        return Response({'message': message}, status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='send-message')
+    def send_message(self, request):
+        serializer = SendEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        send_message(
+            serializer.validated_data['email'], 
+            serializer.validated_data['subject'], 
+            serializer.validated_data['body']
+        )
+
+        return Response({'message': 'Email sent successfully'}, status.HTTP_200_OK)
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
-            return UserSerializer
+            return UserReadSerializer
 
         return UserCreateSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['create']:
+            return [AllowAny()]
+
+        if self.action in ['list', 'retrieve', 'me']:
             return [IsAuthenticated()]
 
         return [IsAdminUser()]
 
     def perform_create(self, serializer):
         user = serializer.save()
-        # send_activation_email(user)
+        send_activation_email(user)

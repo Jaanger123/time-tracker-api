@@ -11,6 +11,7 @@ router.register('calendars', CalendarViewSet)
 
 urlpatterns = [
     path('settings/', CountrySettingsView.as_view(), name='global-settings'),
+
     # ViewSets
     path('', include(router.urls)),
 ]

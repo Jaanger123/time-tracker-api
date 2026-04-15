@@ -1,9 +1,10 @@
 from celery import shared_task
-from apps.projects.models import Project
+
 from .services.project_code_service import (
     create_next_month_code,
     can_generate_code
 )
+from apps.projects.models import Project
 
 
 @shared_task

@@ -13,8 +13,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 
-from django.http import HttpResponse
 from django.db.models import Sum, Max, Q, F, OuterRef, Subquery
+from django.http import HttpResponse
 
 from .utils import get_working_days_list, get_country
 from apps.projects.models import ProjectCode
