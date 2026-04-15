@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
 from .microsoft_auth import get_access_token
-from config.decouple_config import config
+from decouple import config
 
 
 User = get_user_model()
