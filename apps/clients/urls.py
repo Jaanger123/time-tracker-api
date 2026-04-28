@@ -6,8 +6,9 @@ from .views import *
 
 
 router = DefaultRouter()
-router.register('clients', ClientViewSet)
 router.register('sectors', SectorViewSet)
+router.register('pies', PieViewSet)
+router.register('clients', ClientViewSet)
 
 urlpatterns = [
     # ViewSets

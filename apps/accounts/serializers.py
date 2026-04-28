@@ -23,7 +23,7 @@ class GradeReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Grade
-        fields = ['id', 'name', 'position']
+        fields = ['id', 'name', 'position', 'short_name']
 
     def get_position(self, obj):
         return obj.position.id if obj.position else None
@@ -38,7 +38,7 @@ class GradeCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Grade
-        fields = ['id', 'name', 'position']
+        fields = ['id', 'name', 'position', 'short_name']
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -74,17 +74,17 @@ class DepartmentSerializer(serializers.ModelSerializer):
         return UserReadSerializer(managers, many=True).data
 
 
-class DepartmentDetailSerializer(serializers.ModelSerializer):
-    members = serializers.SerializerMethodField()
+# class DepartmentDetailSerializer(serializers.ModelSerializer):
+#     members = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Department
-        fields = '__all__'
+#     class Meta:
+#         model = Department
+#         fields = '__all__'
 
-    def get_members(self, obj):
-        members = User.objects.filter(department=obj).distinct()
+#     def get_members(self, obj):
+#         members = User.objects.filter(department=obj).distinct()
 
-        return UserReadSerializer(members, many=True).data
+#         return UserReadSerializer(members, many=True).data
 
 
 class DepartmentRoleSerializer(serializers.ModelSerializer):
@@ -155,11 +155,11 @@ class UserReadSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
-            'grade',
+            'role',
             'position',
+            'grade',
             'department',
             'department_role',
-            'role',
             'country',
             'is_active',
             'date_joined',
@@ -217,11 +217,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
-            'grade',
+            'role',
             'position',
+            'grade',
             'department',
             'department_role',
-            'role',
             'country',
         ]
 

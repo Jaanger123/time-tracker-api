@@ -3,8 +3,15 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
+from apps.projects.pagination import ProjectPagination
 from .serializers import *
 from .models import *
+
+
+class ServiceTypeViewSet(ModelViewSet):
+    queryset = ServiceType.objects.all()
+    serializer_class = ServiceTypeSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class ProjectStatusViewSet(ModelViewSet):
@@ -65,6 +72,7 @@ class ProjectViewSet(ModelViewSet):
     )
     serializer_class = ProjectReadSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = ProjectPagination
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:

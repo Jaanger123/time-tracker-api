@@ -1,46 +1,88 @@
-from datetime import datetime
-
-from django.utils.timezone import now
+from datetime import datetime, date
 
 from apps.projects.models import ProjectCode
 
 
-def generate_base_code(project):
-    return f'{project.country.code.upper()}_{project.client.name.upper()}_{project.department.name.upper()}_{datetime.now().year}'
+def generate_base_code(project, year):
+    # country_department_client(-project-entity)_year_project-type
+    code_structure = [
+        project.country.code.upper(),
+        project.department.code.upper(),
+        project.client.client_code.upper() + (('-' + project.entity.upper()) if project.entity != '' else ''),
+        year,
+        project.service_type.name.upper()
+    ]
+
+    return '_'.join(code_structure)
+
+def get_months(start_date, end_date):
+    current = start_date.replace(day=1)
+    months = []
+
+    while current <= end_date:
+        months.append(current)
+        month = current.month % 12 + 1
+        year = current.year + (current.month // 12)
+        current = date(year, month, 1)
+
+    return months
 
 def create_initial_code(project):
-    base_code = generate_base_code(project)
+    try:
+        if project.is_code_recurring:
+            today = datetime.now().date()
+            months = get_months(
+                start_date=project.agreement_date,
+                end_date=today
+            )
+            project_codes = []
 
-    if project.is_code_recurring:
-        code = f'{base_code}_M1'
-    else:
-        code = base_code
+            for month in months:
+                code = generate_base_code(
+                    project=project, 
+                    year=str(month.year)
+                ) + f'_M{month.month}'
+                project_codes.append(ProjectCode(project=project, code=code))
 
-    return ProjectCode.objects.create(
-        project=project,
-        code=code
-    )
+            return ProjectCode.objects.bulk_create(project_codes)
+
+        else:
+            base_code = generate_base_code(
+                project=project, 
+                year=str(project.agreement_date.year)
+            )
+            queryset = ProjectCode.objects.filter(code__contains=base_code)
+            last_code_number = 0
+
+            if queryset:
+                for obj in queryset:
+                    code_number = int(obj.code.split('_')[-1])
+                    last_code_number = max(last_code_number, code_number)
+
+            code = base_code + f'_{last_code_number + 1}'
+
+            return ProjectCode.objects.create(
+                project=project,
+                code=code
+            )
+    except Exception:
+        return False
 
 def create_next_month_code(project):
     if already_created_this_month(project):
         return None
 
     last_code = project.get_last_project_code()
+    today = datetime.now().date()
 
     if not last_code:
         return create_initial_code(project)
 
-    # extract last M number
-    if '_M' in last_code:
-        current_month = int(last_code.split('_M')[-1])
-    else:
-        current_month = 0
-
-    next_month = current_month + 1
-
-    base_code = generate_base_code(project)
-
-    new_code = f'{base_code}_M{next_month}'
+    base_code = generate_base_code(
+        project=project, 
+        year=today.year
+    )
+    new_code = f'{base_code}_M{today.month}'
 
     return ProjectCode.objects.create(
         project=project,
@@ -51,11 +93,11 @@ def can_generate_code(project):
     return (
         project.is_code_recurring and
         project.status and
-        project.status.name != 'Delivered'
+        project.status.name == 'In progress'
     )
 
 def already_created_this_month(project):
-    today = now()
+    today = datetime.now()
 
     return ProjectCode.objects.filter(
         project=project,

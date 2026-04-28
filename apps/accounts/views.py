@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.generics import GenericAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
@@ -10,6 +10,8 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from services.email_service import send_activation_email, send_reminder, send_message
+from apps.accounts.pagination import UserPagination
+from .permissions import IsAdminRole
 from .serializers import *
 from .models import *
 
@@ -56,8 +58,8 @@ class DepartmentViewSet(ModelViewSet):
     #     return Response(serializer.data)
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return DepartmentDetailSerializer
+        # if self.action == 'retrieve':
+        #     return DepartmentDetailSerializer
 
         return DepartmentSerializer
 
@@ -125,8 +127,16 @@ class UserViewSet(ModelViewSet):
     )
     serializer_class = UserReadSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = UserPagination
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get'])
+    def managers(self, request):
+        managers = User.objects.filter(department_role__name='Manager')
+        serializer = UserReadSerializer(managers, many=True)
+
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
     def me(self, request):
         serializer = UserReadSerializer(request.user)
 
@@ -175,13 +185,10 @@ class UserViewSet(ModelViewSet):
         return UserCreateSerializer
 
     def get_permissions(self):
-        if self.action in ['create']:
-            return [AllowAny()]
-
-        if self.action in ['list', 'retrieve', 'me']:
+        if self.action in ['list', 'retrieve', 'me', 'managers']:
             return [IsAuthenticated()]
 
-        return [IsAdminUser()]
+        return [IsAdminRole()]
 
     def perform_create(self, serializer):
         user = serializer.save()

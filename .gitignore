@@ -216,3 +216,7 @@ dump.rdb
 # User
 notes.txt
 .DS_Store
+
+# Project
+time_tracker_tables.xlsx
+apps/accounts/management/

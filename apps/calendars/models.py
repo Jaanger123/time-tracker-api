@@ -43,18 +43,18 @@ class CountrySettings(models.Model):
 
 
 class TimeEntry(models.Model):
+    date = models.DateField(null=True, blank=True)
+    hours = models.IntegerField()
+    description = models.TextField(blank=True)
+    weekends_included = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='time_entries')
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True)
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
     task_type = models.ForeignKey(TaskType, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
-    weekends_included = models.BooleanField(default=False)
-    date = models.DateField(null=True, blank=True)
-    hours = models.IntegerField()
-    description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = _('Time entries')

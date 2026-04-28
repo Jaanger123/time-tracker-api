@@ -25,21 +25,23 @@ class Position(models.Model):
 
 class Grade(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    short_name = models.CharField(max_length=50)
     position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True, related_name='grades')
 
     def __str__(self):
         return f'{self.position if self.position else "N/A"} - {self.name}'
 
 
-class Department(models.Model):
+class DepartmentRole(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
 
 
-class DepartmentRole(models.Model):
+class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name

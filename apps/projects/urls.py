@@ -11,6 +11,7 @@ router.register('statuses', ProjectStatusViewSet)
 router.register('service-lines', ServiceLineViewSet)
 router.register('task-types', TaskTypeViewSet)
 router.register('tasks', TaskViewSet)
+router.register('service-types', ServiceTypeViewSet)
 
 
 urlpatterns = [

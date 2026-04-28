@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import *
 
 
+admin.site.register(ServiceType)
 admin.site.register(ProjectStatus)
 admin.site.register(ProjectCode)
 admin.site.register(ServiceLine)

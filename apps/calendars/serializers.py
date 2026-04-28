@@ -106,28 +106,23 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
     country = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True
     )
     client = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True
     )
     project = serializers.PrimaryKeyRelatedField(
         queryset=Project.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True
     )
     task_type = serializers.PrimaryKeyRelatedField(
         queryset=TaskType.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True
     )
     task = serializers.PrimaryKeyRelatedField(
         queryset=Task.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True
     )
 
     class Meta:

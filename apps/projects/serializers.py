@@ -8,6 +8,12 @@ from .models import *
 User = get_user_model()
 
 
+class ServiceTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceType
+        fields = '__all__'
+
+
 class ProjectStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectStatus
@@ -40,8 +46,7 @@ class TaskReadSerializer(serializers.ModelSerializer):
 class TaskCreateSerializer(serializers.ModelSerializer):
     task_type = serializers.PrimaryKeyRelatedField(
         queryset=TaskType.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
     )
 
     class Meta:
@@ -68,6 +73,7 @@ class ProjectReadSerializer(serializers.ModelSerializer):
     department = serializers.SerializerMethodField()
     service_line = serializers.SerializerMethodField()
     task_type = serializers.SerializerMethodField()
+    service_type = serializers.SerializerMethodField()
     codes = serializers.SerializerMethodField()
 
     class Meta:
@@ -95,8 +101,9 @@ class ProjectReadSerializer(serializers.ModelSerializer):
     def get_task_type(self, obj):
         return obj.task_type.name if obj.task_type else None
 
-    # def get_code(self, obj):
-    #     return obj.get_last_project_code()
+    def get_service_type(self, obj):
+        return obj.service_type.name if obj.service_type else None
+
     def get_codes(self, obj):
         codes = ProjectCode.objects.filter(project=obj.id).order_by('created_at')
 
@@ -106,38 +113,35 @@ class ProjectReadSerializer(serializers.ModelSerializer):
 class ProjectCreateSerializer(serializers.ModelSerializer):
     status = serializers.PrimaryKeyRelatedField(
         queryset=ProjectStatus.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
     )
     country = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
     )
     manager = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
     )
     client = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
     )
     department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
     )
     service_line = serializers.PrimaryKeyRelatedField(
         queryset=ServiceLine.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
     )
     task_type = serializers.PrimaryKeyRelatedField(
         queryset=TaskType.objects.all(),
-        required=False,
-        allow_null=True,
+        required=True,
+    )
+    service_type = serializers.PrimaryKeyRelatedField(
+        queryset=ServiceType.objects.all(),
+        required=True,
     )
 
     class Meta:
@@ -152,26 +156,29 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     client = serializers.ReadOnlyField(source='client.name')
     department = serializers.ReadOnlyField(source='department.name')
     service_line = serializers.ReadOnlyField(source='service_line.name')
+    service_type = serializers.ReadOnlyField(source='service_type.name')
     tasks = serializers.SerializerMethodField()
     codes = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = [
-            'id',
-            'name',
-            'description',
-            'project_color',
-            'is_chargeable',
-            'status',
-            'country',
-            'manager',
-            'client',
-            'department',
-            'service_line',
-            'tasks',
-            'codes',
-        ]
+        # fields = [
+        #     'id',
+        #     'name',
+        #     'description',
+        #     'project_color',
+        #     'is_chargeable',
+        #     'status',
+        #     'country',
+        #     'manager',
+        #     'client',
+        #     'department',
+        #     'service_line',
+        #     'service_type',
+        #     'tasks',
+        #     'codes',
+        # ]
+        fields = '__all__'
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(task_type=obj.task_type)
