@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from sqlite3 import IntegrityError
 
 from apps.projects.models import ProjectCode
 
@@ -70,7 +71,7 @@ def create_initial_code(project):
 
 def create_next_month_code(project):
     if already_created_this_month(project):
-        return None
+        return False
 
     last_code = project.get_last_project_code()
     today = datetime.now().date()
@@ -84,10 +85,15 @@ def create_next_month_code(project):
     )
     new_code = f'{base_code}_M{today.month}'
 
-    return ProjectCode.objects.create(
-        project=project,
-        code=new_code
-    )
+    try:
+        ProjectCode.objects.create(
+            project=project,
+            code=new_code
+        )
+
+        return True
+    except IntegrityError:
+        return False
 
 def can_generate_code(project):
     return (
