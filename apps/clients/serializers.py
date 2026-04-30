@@ -3,7 +3,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from apps.accounts.models import Country
 
-from apps.projects.serializers import ProjectReadSerializer
+from apps.projects.serializers import ProjectCodeReadSerializer, ProjectReadSerializer
+from apps.projects.models import ProjectCode
 from .models import *
 
 
@@ -42,11 +43,18 @@ class ClientSerializer(serializers.ModelSerializer):
 
 
 class ClientDetailSerializer(serializers.ModelSerializer):
-    projects = ProjectReadSerializer(source='project_set', many=True, read_only=True)
+    # projects = ProjectReadSerializer(source='project_set', many=True, read_only=True)
+    project_codes = serializers.SerializerMethodField()
 
     class Meta:
         model = Client
         fields = '__all__'
+
+    def get_project_codes(self, obj):
+        project_codes = ProjectCode.objects.select_related('project', 'project__client') \
+            .filter(project__client=obj)
+
+        return ProjectCodeReadSerializer(project_codes, many=True).data
 
 
 class ClientCreateSerializer(serializers.ModelSerializer):

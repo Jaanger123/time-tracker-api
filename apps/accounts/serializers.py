@@ -147,6 +147,7 @@ class UserReadSerializer(serializers.ModelSerializer):
     department = serializers.SerializerMethodField()
     department_role = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
+    country_id = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -161,6 +162,7 @@ class UserReadSerializer(serializers.ModelSerializer):
             'department',
             'department_role',
             'country',
+            'country_id',
             'is_active',
             'date_joined',
             'date_left',
@@ -183,6 +185,9 @@ class UserReadSerializer(serializers.ModelSerializer):
 
     def get_country(self, obj):
         return obj.country.code if obj.country else None
+
+    def get_country_id(self, obj):
+        return obj.country.id if obj.country else None
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

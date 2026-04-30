@@ -32,7 +32,6 @@ class CountrySettingsSerializer(serializers.ModelSerializer):
 class TimeEntryReadSerializer(serializers.ModelSerializer):
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
-    project = serializers.SerializerMethodField()
     project_color = serializers.SerializerMethodField()
     project_code = serializers.SerializerMethodField()
     task_type = serializers.SerializerMethodField()
@@ -48,14 +47,11 @@ class TimeEntryReadSerializer(serializers.ModelSerializer):
     def get_client(self, obj):
         return obj.client.name if obj.client else None
 
-    def get_project(self, obj):
-        return obj.project.name if obj.project else None
-
     def get_project_color(self, obj):
-        return obj.project.project_color if obj.project else None
+        return obj.project_code.project.project_color if obj.project_code and obj.project_code.project else None
 
     def get_project_code(self, obj):
-        return obj.project.get_last_project_code() if obj.project else None
+        return obj.project_code.code if obj.project_code else None
 
     def get_task_type(self, obj):
         return obj.task_type.name if obj.task_type else None
@@ -68,7 +64,6 @@ class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.email')
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
-    project = serializers.SerializerMethodField()
     project_color = serializers.SerializerMethodField()
     project_code = serializers.SerializerMethodField()
     task_type = serializers.SerializerMethodField()
@@ -84,14 +79,11 @@ class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
     def get_client(self, obj):
         return obj.client.name if obj.client else None
 
-    def get_project(self, obj):
-        return obj.project.name if obj.project else None
-
     def get_project_color(self, obj):
-        return obj.project.project_color if obj.project else None
+        return obj.project_code.project.project_color if obj.project_code and obj.project_code.project else None
 
     def get_project_code(self, obj):
-        return obj.project.get_last_project_code() if obj.project else None
+        return obj.project_code.code if obj.project_code else None
 
     def get_task_type(self, obj):
         return obj.task_type.name if obj.task_type else None
@@ -106,15 +98,20 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
     country = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
-        required=True
+        required=False,
+        allow_null=True
     )
     client = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
-        required=True
+        required=False,
+        allow_null=True
+        
     )
-    project = serializers.PrimaryKeyRelatedField(
-        queryset=Project.objects.all(),
-        required=True
+    project_code = serializers.PrimaryKeyRelatedField(
+        queryset=ProjectCode.objects.all(),
+        required=False,
+        allow_null=True
+        
     )
     task_type = serializers.PrimaryKeyRelatedField(
         queryset=TaskType.objects.all(),

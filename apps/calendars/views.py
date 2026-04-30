@@ -77,7 +77,7 @@ class TimeEntryViewSet(ModelViewSet):
         'user',
         'country',
         'client',
-        'project',
+        'project_code',
         'task_type',
         'task'
     )
@@ -99,7 +99,6 @@ class TimeEntryViewSet(ModelViewSet):
             'hours',
             'project_department',
             'client_name',
-            'project_name',
             'project_code',
             'project_service_line',
             'task_type_name',
@@ -117,7 +116,6 @@ class TimeEntryViewSet(ModelViewSet):
             'Hours',
             'Project Department',
             'Client',
-            'Project',
             'Project Code',
             'Service Line',
             'Task Type',
@@ -147,17 +145,13 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def report(self, request):
-        latest_code_subquery = ProjectCode.objects.filter(
-            project=OuterRef('project_id')
-        ).order_by('-created_at').values('code')[:1]
-
         queryset = (
             TimeEntry.objects
             .select_related(
                 'user',
                 'country',
                 'client',
-                'project',
+                'project_code',
                 'task_type',
                 'task'
             )
@@ -168,10 +162,9 @@ class TimeEntryViewSet(ModelViewSet):
                 position=F('user__position__name'),
                 detailed_grade=F('user__grade__name'),
                 client_name=F('client__name'),
-                project_department=F('project__department__name'),
-                project_name=F('project__name'),
-                project_code=Subquery(latest_code_subquery),
-                project_service_line=F('project__service_line__name'),
+                project_department=F('project_code__project__department__name'),
+                code=F('project_code__code'),
+                project_service_line=F('project_code__project__service_line__name'),
                 task_type_name=F('task_type__name'),
                 task_name=F('task__name'),
             )
@@ -185,8 +178,7 @@ class TimeEntryViewSet(ModelViewSet):
                 'hours',
                 'project_department',
                 'client_name',
-                'project_name',
-                'project_code',
+                'code',
                 'project_service_line',
                 'task_type_name',
                 'task_name',
@@ -309,7 +301,7 @@ class TimeEntryViewSet(ModelViewSet):
         base_queryset = TimeEntry.objects.select_related(
             'country',
             'client',
-            'project',
+            'project_code',
             'task_type',
             'task',
         )

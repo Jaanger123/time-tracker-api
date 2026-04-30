@@ -16,7 +16,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
 # Application definition
@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     'apps.clients',
     'apps.projects',
 ]
+
+if not DEBUG:
+    INSTALLED_APPS.remove('drf_yasg')
 
 MIDDLEWARE = [
     # CORS
@@ -137,6 +140,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 # JWT
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -152,16 +156,31 @@ SIMPLE_JWT = {
 
 
 # CORS
+
+# CORS_ALLOW_ALL_ORIGINS = False
+
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 
-# CORS_ALLOW_HEADERS = [
-#     'authorization',
-#     'content-type',
-# ]
+
+# CSRF
+
+# CSRF_TRUSTED_ORIGINS = config(
+#     'CSRF_TRUSTED_ORIGINS',
+#     cast=lambda v: [s.strip() for s in v.split(',')],
+#     default=''
+# )
+
+# Security
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
 
 # SWAGGER
+
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'Bearer': {
@@ -172,7 +191,26 @@ SWAGGER_SETTINGS = {
     },
 }
 
+
+# Logging
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
+
+
 # Celery
+
 CELERY_BEAT_SCHEDULE = {
     'generate-project-codes-monthly': {
         'task': 'apps.projects.tasks.generate_monthly_project_codes',
@@ -180,8 +218,8 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Bishkek'

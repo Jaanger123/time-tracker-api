@@ -42,15 +42,28 @@ def send_email(to_email, subject, body):
         raise Exception(response.text)
 
 def send_activation_email(user):
+    activation_link = 'http://165.22.29.172/login'
     subject = 'Activate your account'
 
     message = f'''
-Hello,
+Hello {user.first_name or ''},
 
-Your activation code is:
+Thank you for registering.
 
+To complete your account activation, please enter the activation code below on the activation page:
+
+Activation Code:
 {user.activation_code}
-'''
+
+Open the activation page here:
+{activation_link}
+
+If you did not request this account, you can safely ignore this email.
+
+Best regards,
+Time Tracker System
+'''.strip()
+
 
     send_email(
         user.email,

@@ -2,7 +2,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from apps.projects.models import Project, Task, TaskType
+from apps.projects.models import ProjectCode, Task, TaskType
 from apps.accounts.models import Country
 from apps.clients.models import Client
 
@@ -52,7 +52,7 @@ class TimeEntry(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='time_entries')
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True)
-    project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
+    project_code = models.ForeignKey(ProjectCode, on_delete=models.SET_NULL, null=True, blank=True)
     task_type = models.ForeignKey(TaskType, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
 
