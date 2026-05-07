@@ -81,7 +81,7 @@ def create_next_month_code(project):
 
     base_code = generate_base_code(
         project=project, 
-        year=today.year
+        year=str(today.year)
     )
     new_code = f'{base_code}_M{today.month}'
 
