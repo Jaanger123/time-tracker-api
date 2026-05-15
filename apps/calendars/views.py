@@ -16,7 +16,7 @@ from rest_framework import status
 from django.db.models import Sum, Max, Q, F, OuterRef, Subquery
 from django.http import HttpResponse
 
-from .utils import get_working_days_list, get_country
+from .utils import filter_monitoring_by_params, get_working_days_list, get_country, filter_report_by_params
 from apps.projects.models import ProjectCode
 from .permissions import IsOwnerOrAdmin
 from .serializers import *
@@ -84,6 +84,12 @@ class TimeEntryViewSet(ModelViewSet):
     serializer_class = TimeEntryReadSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
+    def paginate_queryset(self, queryset):
+        if self.action == 'list':
+            return None
+
+        return super().paginate_queryset(queryset)
+
     def _generate_excel(self, queryset):
         workbook = openpyxl.Workbook()
         sheet = workbook.active
@@ -145,17 +151,19 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def report(self, request):
+        queryset = TimeEntry.objects.select_related(
+            'user',
+            'country',
+            'client',
+            'project_code',
+            'task_type',
+            'task'
+        )
+
+        queryset = filter_report_by_params(request, queryset)
+
         queryset = (
-            TimeEntry.objects
-            .select_related(
-                'user',
-                'country',
-                'client',
-                'project_code',
-                'task_type',
-                'task'
-            )
-            .annotate(
+            queryset.annotate(
                 user_email=F('user__email'),
                 country_code=F('country__code'),
                 user_department=F('user__department__name'),
@@ -192,7 +200,9 @@ class TimeEntryViewSet(ModelViewSet):
         if format_type == 'excel':
             return self._generate_excel(queryset)
 
-        return Response(list(queryset))
+        page = self.paginate_queryset(queryset)
+
+        return self.get_paginated_response(page)
 
     @action(detail=False, methods=['get'])
     def monitoring(self, request):
@@ -207,7 +217,8 @@ class TimeEntryViewSet(ModelViewSet):
         queryset = (
             User.objects
             .filter(
-                country=country_id
+                country=country_id,
+                is_active=True
             )
             .annotate(
                 total_hours=Sum(
@@ -220,6 +231,8 @@ class TimeEntryViewSet(ModelViewSet):
                 )
             )
             .values(
+                'first_name',
+                'last_name',
                 user_email=F('email'),
                 user_id=F('id'),
                 total_hours=F('total_hours'),
@@ -282,7 +295,11 @@ class TimeEntryViewSet(ModelViewSet):
 
             data.append(row)
 
-        return Response(data)
+        data = filter_monitoring_by_params(request, data)
+
+        page = self.paginate_queryset(data)
+
+        return self.get_paginated_response(page)
 
     def get_serializer_class(self):
         user = self.request.user
@@ -325,6 +342,7 @@ class CalendarViewSet(ModelViewSet):
     )
     serializer_class = CalendarSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     @action(detail=False, methods=['get'], url_path='day-types')
     def day_types(self, request):

@@ -1,7 +1,9 @@
 from datetime import timedelta
+from email.policy import default
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 
 from rest_framework import serializers
 
@@ -93,6 +95,8 @@ class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
 
 
 class TimeEntryCreateSerializer(serializers.ModelSerializer):
+    weekends_included = serializers.BooleanField(write_only=True, default=False)
+    holidays_included = serializers.BooleanField(write_only=True, default=False)
     start_date = serializers.DateField(required=False, write_only=True)
     end_date = serializers.DateField(required=False, write_only=True)
 
@@ -105,7 +109,6 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         queryset=Client.objects.all(),
         required=False,
         allow_null=True
-        
     )
     project_code = serializers.PrimaryKeyRelatedField(
         queryset=ProjectCode.objects.all(),
@@ -137,7 +140,7 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
         if not date and (not start_date or not end_date):
             raise serializers.ValidationError(
-                'Provide \'{date}\' or \'start_date\' and \'end_date\'.'
+                'Provide \'date\' or \'start_date\' and \'end_date\'.'
             )
 
         if start_date and end_date:
@@ -149,7 +152,9 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        weekends_included = validated_data.get('weekends_included', False)
+        request = self.context.get('request')
+        weekends_included = validated_data.pop('weekends_included', False)
+        holidays_included = validated_data.pop('holidays_included', False)
         start_date = validated_data.pop('start_date', None)
         end_date = validated_data.pop('end_date', None)
 
@@ -158,11 +163,47 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
                 **validated_data
             )
 
+        years = list(range(start_date.year, end_date.year + 1))
+
+        calendar_events = Calendar.objects.filter(
+            country=request.user.country
+        ).filter(
+            Q(is_recurring=True) |
+            Q(is_recurring=False, year__in=years)
+        )
+
+        holidays = set()
+        working_weekends = set()
+
+        for event in calendar_events:
+            if event.is_recurring:
+                day = (event.month, event.day)
+            else:
+                day = (event.year, event.month, event.day)
+
+            if event.day_type == Calendar.DayType.HOLIDAY:
+                holidays.add(day)
+
+            elif event.day_type == Calendar.DayType.WORKING_WEEKEND:
+                working_weekends.add(day)
+
         entries = []
         current_date = start_date
 
         while current_date <= end_date:
-            if not weekends_included and current_date.weekday() >= 5:
+            key_full = (current_date.year, current_date.month, current_date.day)
+            key_recurring = (current_date.month, current_date.day)
+
+            is_holiday = key_full in holidays or key_recurring in holidays
+            is_working_weekend = key_full in working_weekends or key_recurring in working_weekends
+
+            # Handle weekends
+            if not weekends_included and current_date.weekday() >= 5 and not is_working_weekend:
+                current_date += timedelta(days=1)
+                continue
+
+            # Handle holidays
+            if not holidays_included and is_holiday:
                 current_date += timedelta(days=1)
                 continue
 
@@ -176,7 +217,7 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
         if not entries:
             raise serializers.ValidationError(
-                'Selected range contains only weekends and weekends are not included.'
+                'There are no working days in the selected range.'
             )
 
         with transaction.atomic():

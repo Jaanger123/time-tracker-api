@@ -31,6 +31,7 @@ INSTALLED_APPS = [
 
     # Libraries
     'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
     'rest_framework',
     'corsheaders',
     'drf_yasg',
@@ -144,7 +145,9 @@ AUTH_USER_MODEL = 'accounts.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
 }
 
 SIMPLE_JWT = {
@@ -159,9 +162,9 @@ SIMPLE_JWT = {
 
 # CORS_ALLOW_ALL_ORIGINS = False
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:3000',
+# ]
 
 
 # CSRF

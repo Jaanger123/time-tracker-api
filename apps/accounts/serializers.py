@@ -4,6 +4,8 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 from apps.clients.serializers import ClientSerializer
 from apps.clients.models import Client
 from .models import *
@@ -119,10 +121,19 @@ class ActivateUserSerializer(serializers.Serializer):
     password_confirm = serializers.CharField(write_only=True, min_length=8)
 
     def validate(self, data):
+        data['email'] = data['email'].lower()
+
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError('Passwords do not match')
 
         return data
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, data):
+        data['email'] = data['email'].lower()
+
+        return super().validate(data)
 
 
 class LogoutSerializer(serializers.Serializer):
@@ -229,6 +240,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'department_role',
             'country',
         ]
+
+    def validate(self, data):
+        data['email'] = data['email'].lower()
+
+        return super().validate(data)
 
     def create(self, validated_data):
         user = User.objects.create(

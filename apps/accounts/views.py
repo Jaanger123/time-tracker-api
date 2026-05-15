@@ -1,34 +1,48 @@
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
+from django.db.models import F
+
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.generics import GenericAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import filters
 from rest_framework import status
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from services.email_service import send_activation_email, send_reminder, send_message
 from apps.accounts.pagination import UserPagination
 from .permissions import IsAdminRole
 from .serializers import *
 from .models import *
+from .filters import UserFilter
 
 
 User = get_user_model()
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 class RoleViewSet(ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 
 class PositionViewSet(ModelViewSet):
     queryset = Position.objects.all()
     serializer_class = PositionSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 
 class GradeViewSet(ModelViewSet):
@@ -37,6 +51,7 @@ class GradeViewSet(ModelViewSet):
     )
     serializer_class = GradeReadSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
@@ -49,6 +64,7 @@ class DepartmentViewSet(ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     # @action(detail=True, methods=['get'])
     # def members(self, request):
@@ -68,12 +84,14 @@ class DepartmentRoleViewSet(ModelViewSet):
     queryset = DepartmentRole.objects.all()
     serializer_class = DepartmentRoleSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 
 class CountryViewSet(ModelViewSet):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -129,6 +147,22 @@ class UserViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = UserPagination
 
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = UserFilter
+    ordering_fields = [
+        'first_name', 
+        'last_name', 
+        'email', 
+        'position_name', 
+        'department_name', 
+        'department_role_name', 
+        'grade_name',
+        'country_code',
+        'role_name',
+        'date_joined',
+        'is_active'
+    ]
+
     @action(detail=False, methods=['get'])
     def managers(self, request):
         managers = User.objects.filter(department_role__name='Manager')
@@ -177,6 +211,16 @@ class UserViewSet(ModelViewSet):
         )
 
         return Response({'message': 'Email sent successfully'}, status.HTTP_200_OK)
+
+    def get_queryset(self):
+        return User.objects.annotate(
+            position_name=F('position__name'),
+            department_name=F('department__name'),
+            department_role_name=F('department_role__name'),
+            grade_name=F('grade__name'),
+            country_code=F('country__code'),
+            role_name=F('role__name'),
+        )
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:

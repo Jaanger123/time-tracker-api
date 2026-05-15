@@ -46,7 +46,6 @@ class TimeEntry(models.Model):
     date = models.DateField(null=True, blank=True)
     hours = models.IntegerField()
     description = models.TextField(blank=True)
-    weekends_included = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='time_entries')
@@ -67,7 +66,6 @@ class Calendar(models.Model):
     class DayType(models.TextChoices):
         HOLIDAY = 'holiday', 'Holiday'
         WORKING_WEEKEND = 'working_weekend', 'Working weekend'
-        WORKING_DAY = 'working_day', 'Working day'
 
     year = models.PositiveSmallIntegerField(null=True, blank=True)
     month = models.PositiveSmallIntegerField()

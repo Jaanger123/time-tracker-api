@@ -221,3 +221,4 @@ notes.txt
 time_tracker_tables.xlsx
 time_tracker_db_final.sql
 apps/accounts/management/
+settings-dev.py
