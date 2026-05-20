@@ -121,17 +121,19 @@ class ActivateUserSerializer(serializers.Serializer):
     password_confirm = serializers.CharField(write_only=True, min_length=8)
 
     def validate(self, data):
-        data['email'] = data['email'].lower()
+        if data.get('email'):
+            data['email'] = data['email'].lower()
 
         if data['password'] != data['password_confirm']:
-            raise serializers.ValidationError('Passwords do not match')
+            raise serializers.ValidationError('Passwords do not match.')
 
         return data
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, data):
-        data['email'] = data['email'].lower()
+        if data.get('email'):
+            data['email'] = data['email'].lower()
 
         return super().validate(data)
 
@@ -139,10 +141,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class LogoutSerializer(serializers.Serializer):
 	refresh = serializers.CharField()
 
-	def validate(self, attrs):
-		self.token = attrs.get('refresh')
+	def validate(self, data):
+		self.token = data.get('refresh')
 
-		return attrs
+		return data
 
 	def save(self, **kwargs):
 		try:
@@ -242,7 +244,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        data['email'] = data['email'].lower()
+        if data.get('email'):
+            data['email'] = data['email'].lower()
 
         return super().validate(data)
 
