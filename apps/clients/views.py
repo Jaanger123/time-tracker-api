@@ -8,6 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.clients.pagination import ClientPagination
 from .filters import ClientFilter
+from utils import generate_excel
 from .serializers import *
 from .models import *
 
@@ -40,9 +41,49 @@ class ClientViewSet(ModelViewSet):
     filterset_class = ClientFilter
     ordering_fields = ['name', 'group', 'personal_number', 'sector_name']
 
+    def _export_excel(self, queryset):
+        columns = [
+            'name',
+            'group',
+            'personal_number',
+            'client_code',
+            'bvd',
+            'sector_name',
+            'country_code',
+            'pie_name',
+        ]
+
+        headers = [
+            'Name',
+            'Group',
+            'Personal Number',
+            'Client Code',
+            'BVD',
+            'Sector',
+            'Country',
+            'Pie',
+        ]
+
+        return generate_excel(queryset, 'Clients', columns, headers)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        export_type = request.query_params.get('export')
+
+        if export_type == 'excel':
+            return self._export_excel(queryset)
+
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)
+
     def get_queryset(self):
         return Client.objects.annotate(
             sector_name=F('sector__name'),
+            country_code=F('country__code'),
+            pie_name=F('pie__name'),
         )
 
     def get_serializer_class(self):

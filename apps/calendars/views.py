@@ -13,11 +13,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 
-from django.db.models import Sum, Max, Q, F, OuterRef, Subquery
+from django.db.models import Sum, Max, Q, F
 from django.http import HttpResponse
 
 from .utils import filter_monitoring_by_params, get_working_days_list, get_country, filter_report_by_params
-from apps.projects.models import ProjectCode
 from .permissions import IsOwnerOrAdmin
 from .serializers import *
 from .models import *
@@ -147,6 +146,7 @@ class TimeEntryViewSet(ModelViewSet):
         response['Content-Disposition'] = 'attachment; filename=timesheet_report.xlsx'
 
         workbook.save(response)
+
         return response
 
     @action(detail=False, methods=['get'])

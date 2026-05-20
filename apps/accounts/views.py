@@ -19,9 +19,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from services.email_service import send_activation_email, send_reminder, send_message
 from apps.accounts.pagination import UserPagination
 from .permissions import IsAdminRole
+from utils import generate_excel
+from .filters import UserFilter
 from .serializers import *
 from .models import *
-from .filters import UserFilter
 
 
 User = get_user_model()
@@ -163,6 +164,78 @@ class UserViewSet(ModelViewSet):
         'is_active'
     ]
 
+    def _export_excel(self, queryset):
+        columns = [
+            'first_name',
+            'last_name',
+            'email',
+            'is_active',
+            'role_name',
+            'position_name',
+            'grade_name',
+            'department_name',
+            'department_role_name',
+            'country_code',
+            'date_joined',
+            'date_left',
+        ]
+
+        headers = [
+            'First Name',
+            'Last Name',
+            'Email',
+            'Is Active',
+            'Role',
+            'Position',
+            'Grade',
+            'Department',
+            'Department Role',
+            'Country',
+            'Date Joined',
+            'Date Left',
+        ]
+
+        return generate_excel(queryset, 'Users', columns, headers)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        export_type = request.query_params.get('export')
+
+        if export_type == 'excel':
+            return self._export_excel(queryset)
+
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)
+
+    def get_queryset(self):
+        return User.objects.annotate(
+            position_name=F('position__name'),
+            department_name=F('department__name'),
+            department_role_name=F('department_role__name'),
+            grade_name=F('grade__name'),
+            country_code=F('country__code'),
+            role_name=F('role__name'),
+        )
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return UserReadSerializer
+
+        return UserCreateSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'me', 'managers']:
+            return [IsAuthenticated()]
+
+        return [IsAdminRole()]
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        send_activation_email(user)
+
     @action(detail=False, methods=['get'])
     def managers(self, request):
         managers = User.objects.filter(department_role__name='Manager')
@@ -211,29 +284,3 @@ class UserViewSet(ModelViewSet):
         )
 
         return Response({'message': 'Email sent successfully'}, status.HTTP_200_OK)
-
-    def get_queryset(self):
-        return User.objects.annotate(
-            position_name=F('position__name'),
-            department_name=F('department__name'),
-            department_role_name=F('department_role__name'),
-            grade_name=F('grade__name'),
-            country_code=F('country__code'),
-            role_name=F('role__name'),
-        )
-
-    def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
-            return UserReadSerializer
-
-        return UserCreateSerializer
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'me', 'managers']:
-            return [IsAuthenticated()]
-
-        return [IsAdminRole()]
-
-    def perform_create(self, serializer):
-        user = serializer.save()
-        send_activation_email(user)

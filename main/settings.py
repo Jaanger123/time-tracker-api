@@ -145,9 +145,7 @@ AUTH_USER_MODEL = 'accounts.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50,
+    )
 }
 
 SIMPLE_JWT = {
@@ -160,11 +158,7 @@ SIMPLE_JWT = {
 
 # CORS
 
-# CORS_ALLOW_ALL_ORIGINS = False
-
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:3000',
-# ]
+CORS_ALLOW_ALL_ORIGINS = False
 
 
 # CSRF
@@ -174,6 +168,7 @@ SIMPLE_JWT = {
 #     cast=lambda v: [s.strip() for s in v.split(',')],
 #     default=''
 # )
+
 
 # Security
 

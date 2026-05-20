@@ -10,8 +10,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.projects.pagination import ProjectPagination
 from .filters import ProjectFilter
+from utils import generate_excel
 from .serializers import *
 from .models import *
+
 
 
 latest_code_subquery = ProjectCode.objects.filter(
@@ -93,6 +95,58 @@ class ProjectViewSet(ModelViewSet):
     filterset_class = ProjectFilter
     ordering_fields = ['code', 'client_name', 'manager_email', 'country_code', 'department_name']
 
+    def _export_excel(self, queryset):
+        columns = [
+            'code',
+            'description',
+            'entity',
+            'ic',
+            'client_name',
+            'country_code',
+            'is_chargeable',
+            'is_code_recurring',
+            'status_name',
+            'manager_email',
+            'department_name',
+            'service_line_name',
+            'task_type_name',
+            'service_type_name',
+            'agreement_date',
+        ]
+
+        headers = [
+            'Code',
+            'Description',
+            'Entity',
+            'IC',
+            'Client Name',
+            'Country',
+            'Is Chargeable',
+            'Is Code Reccuring',
+            'Status',
+            'Manager',
+            'Department',
+            'Service Line',
+            'Task Type',
+            'Service Type',
+            'Agreement Date',
+        ]
+
+        return generate_excel(queryset, 'Projects', columns, headers)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        export_type = request.query_params.get('export')
+
+        if export_type == 'excel':
+            return self._export_excel(queryset)
+
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             if self.action == 'retrieve':
@@ -108,5 +162,9 @@ class ProjectViewSet(ModelViewSet):
             manager_email=F('manager__email'),
             country_code=F('country__code'),
             department_name=F('department__name'),
+            status_name=F('status__name'),
+            service_line_name=F('service_line__name'),
+            task_type_name=F('task_type__name'),
+            service_type_name=F('service_type__name'),
             code=Subquery(latest_code_subquery)
         )
