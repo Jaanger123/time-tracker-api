@@ -153,12 +153,17 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context.get('request')
-        weekends_included = validated_data.pop('weekends_included', False)
-        holidays_included = validated_data.pop('holidays_included', False)
+        weekends_included = validated_data.pop('weekends_included', None)
+        holidays_included = validated_data.pop('holidays_included', None)
         start_date = validated_data.pop('start_date', None)
         end_date = validated_data.pop('end_date', None)
 
-        if not start_date or not end_date:
+        # if not start_date or not end_date:
+        # print(start_date, end_date)
+        # print(weekends_included)
+        # print(holidays_included)
+        # print(start_date == end_date)
+        if start_date == end_date and (weekends_included == None or holidays_included == None):
             return TimeEntry.objects.create(
                 **validated_data
             )

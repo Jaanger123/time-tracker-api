@@ -43,7 +43,6 @@ class ClientSerializer(serializers.ModelSerializer):
 
 
 class ClientDetailSerializer(serializers.ModelSerializer):
-    # projects = ProjectReadSerializer(source='project_set', many=True, read_only=True)
     project_codes = serializers.SerializerMethodField()
 
     class Meta:
@@ -60,7 +59,8 @@ class ClientDetailSerializer(serializers.ModelSerializer):
 class ClientCreateSerializer(serializers.ModelSerializer):
     sector = serializers.PrimaryKeyRelatedField(
         queryset=Sector.objects.all(),
-        required=True,
+        required=False,
+        allow_null=True
     )
     country = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
@@ -68,7 +68,8 @@ class ClientCreateSerializer(serializers.ModelSerializer):
     )
     pie = serializers.PrimaryKeyRelatedField(
         queryset=Pie.objects.all(),
-        required=True,
+        required=False,
+        allow_null=True
     )
 
     class Meta:

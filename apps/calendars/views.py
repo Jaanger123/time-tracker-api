@@ -302,11 +302,11 @@ class TimeEntryViewSet(ModelViewSet):
         return self.get_paginated_response(page)
 
     def get_serializer_class(self):
-        user = self.request.user
+        # user = self.request.user
 
         if self.action in ['list', 'retrieve']:
-            if user.is_staff:
-                return TimeEntryAdminReadSerializer
+            # if user.is_staff:
+            #     return TimeEntryAdminReadSerializer
 
             return TimeEntryReadSerializer
 

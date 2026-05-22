@@ -2,6 +2,7 @@ from django.db.models import F
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.response import Response
 from rest_framework import filters
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -74,10 +75,20 @@ class ClientViewSet(ModelViewSet):
         if export_type == 'excel':
             return self._export_excel(queryset)
 
-        page = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(page, many=True)
+        if request.query_params.get('all') == 'true':
+            serializer = self.get_serializer(queryset, many=True)
 
-        return self.get_paginated_response(serializer.data)
+            return Response(serializer.data)
+
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
 
     def get_queryset(self):
         return Client.objects.annotate(
@@ -85,6 +96,11 @@ class ClientViewSet(ModelViewSet):
             country_code=F('country__code'),
             pie_name=F('pie__name'),
         )
+
+    def paginate_queryset(self, queryset):
+        
+
+        return super().paginate_queryset(queryset)
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:

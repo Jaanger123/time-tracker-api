@@ -49,7 +49,7 @@ class Task(models.Model):
 
 
 class Project(models.Model):
-    description = models.TextField()
+    description = models.TextField(blank=True)
     entity = models.CharField(max_length=100, blank=True)
     ic = models.CharField(max_length=100, blank=True)
     project_color = models.CharField(max_length=7, default='#787878')
