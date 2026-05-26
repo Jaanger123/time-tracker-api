@@ -335,7 +335,6 @@ class TimeEntryViewSet(ModelViewSet):
         return {'request': self.request}
 
 
-
 class CalendarViewSet(ModelViewSet):
     queryset = Calendar.objects.all().select_related(
         'country',
@@ -360,10 +359,7 @@ class CalendarViewSet(ModelViewSet):
     def holidays(self, request):
         user = request.user
 
-        filtered_queryset = Calendar.objects.filter(day_type=Calendar.DayType.HOLIDAY)
-
-        if not user.is_staff:
-            filtered_queryset = filtered_queryset.filter(country=user.country.id)
+        filtered_queryset = Calendar.objects.filter(day_type=Calendar.DayType.HOLIDAY, country=user.country.id)
 
         serializer = self.get_serializer(filtered_queryset, many=True)
 
@@ -373,10 +369,7 @@ class CalendarViewSet(ModelViewSet):
     def working_weekends(self, request):
         user = request.user
 
-        filtered_queryset = Calendar.objects.filter(day_type=Calendar.DayType.WORKING_WEEKEND)
-
-        if not user.is_staff:
-            filtered_queryset = filtered_queryset.filter(country=user.country.id)
+        filtered_queryset = Calendar.objects.filter(day_type=Calendar.DayType.WORKING_WEEKEND, country=user.country.id)
 
         serializer = self.get_serializer(filtered_queryset, many=True)
 

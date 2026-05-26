@@ -161,6 +161,7 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
         if start_date == end_date and single_date == 'true':
             return TimeEntry.objects.create(
+                date=start_date,
                 **validated_data
             )
 
