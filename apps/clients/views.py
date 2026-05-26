@@ -33,7 +33,7 @@ class ClientViewSet(ModelViewSet):
         'sector',
         'country',
         'pie'
-    )
+    ).order_by('id')
     serializer_class = ClientSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = ClientPagination

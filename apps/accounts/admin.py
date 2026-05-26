@@ -17,6 +17,7 @@ class UserAdmin(BaseUserAdmin):
         (_('Personal info'), {'fields': (
             'first_name', 
             'last_name', 
+            'phone_number', 
             'date_joined',  
             'date_left', 
             'country',
@@ -35,6 +36,7 @@ class UserAdmin(BaseUserAdmin):
                 'email', 
                 'first_name', 
                 'last_name', 
+                'phone_number', 
                 'password1', 
                 'password2', 
                 'position', 

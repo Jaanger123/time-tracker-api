@@ -143,7 +143,7 @@ class UserViewSet(ModelViewSet):
         'department', 
         'department_role', 
         'country'
-    )
+    ).order_by('id')
     serializer_class = UserReadSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = UserPagination
@@ -169,6 +169,7 @@ class UserViewSet(ModelViewSet):
             'first_name',
             'last_name',
             'email',
+            'phone_number',
             'is_active',
             'role_name',
             'position_name',
@@ -184,6 +185,7 @@ class UserViewSet(ModelViewSet):
             'First Name',
             'Last Name',
             'Email',
+            'Phone Number',
             'Is Active',
             'Role',
             'Position',

@@ -1,6 +1,6 @@
 from datetime import timedelta
-from email.policy import default
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
@@ -153,17 +153,13 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context.get('request')
-        weekends_included = validated_data.pop('weekends_included', None)
-        holidays_included = validated_data.pop('holidays_included', None)
+        weekends_included = validated_data.pop('weekends_included', False)
+        holidays_included = validated_data.pop('holidays_included', False)
         start_date = validated_data.pop('start_date', None)
         end_date = validated_data.pop('end_date', None)
+        single_date = request.query_params.get('single_date', 'false')
 
-        # if not start_date or not end_date:
-        # print(start_date, end_date)
-        # print(weekends_included)
-        # print(holidays_included)
-        # print(start_date == end_date)
-        if start_date == end_date and (weekends_included == None or holidays_included == None):
+        if start_date == end_date and single_date == 'true':
             return TimeEntry.objects.create(
                 **validated_data
             )
@@ -299,10 +295,28 @@ class CalendarSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('input_date')
+        instance = Calendar(**validated_data)
 
-        return super().create(validated_data)
+        try:
+            instance.full_clean()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+
+        instance.save()
+
+        return instance
 
     def update(self, instance, validated_data):
-        validated_data.pop('input_date', None)
+        validated_data.pop('input_date')
 
-        return super().update(instance, validated_data)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        try:
+            instance.full_clean()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+
+        instance.save()
+
+        return instance

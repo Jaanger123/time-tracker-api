@@ -1,4 +1,7 @@
+from datetime import date
+
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.db import models
 
@@ -90,6 +93,40 @@ class Calendar(models.Model):
                 name='recurring_has_no_year',
             ),
         ]
+
+    def clean(self):
+        super().clean()
+
+        actual_year = self.year if self.year else date.today().year
+
+        actual_date = date(
+            actual_year,
+            self.month,
+            self.day
+        )
+
+        settings = CountrySettings.get_settings(self.country_id)
+        working_days = set(settings.working_days)
+
+        weekday = actual_date.weekday()
+
+        if self.day_type == self.DayType.WORKING_WEEKEND:
+            if weekday in working_days:
+                raise ValidationError({
+                    'message': 'Working weekend can only be created on non-working days.'
+                })
+
+            holiday_exists = Calendar.objects.filter(
+                country=self.country,
+                month=self.month,
+                day=self.day,
+                day_type=self.DayType.HOLIDAY,
+            ).exclude(pk=self.pk).exists()
+
+            if holiday_exists:
+                raise ValidationError({
+                    'message': 'Cannot create working weekend on holiday.'
+                })
 
     def __str__(self):
         return f'{self.country} {self.month:02}-{self.day:02}'

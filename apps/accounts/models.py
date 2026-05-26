@@ -64,6 +64,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=150)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    phone_number = models.CharField(max_length=50, blank=True)
+    # is_on_maternity_leave = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now, editable=False)
     date_left = models.DateTimeField(blank=True, null=True)
     activation_code = models.UUIDField(

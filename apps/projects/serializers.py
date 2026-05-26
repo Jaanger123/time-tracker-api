@@ -68,6 +68,7 @@ class ProjectCodeReadSerializer(serializers.ModelSerializer):
 class ProjectReadSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
+    country_of_ubo = serializers.SerializerMethodField()
     manager = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
     department = serializers.SerializerMethodField()
@@ -85,6 +86,9 @@ class ProjectReadSerializer(serializers.ModelSerializer):
 
     def get_country(self, obj):
         return obj.country.code if obj.country else None
+
+    def get_country_of_ubo(self, obj):
+        return obj.country_of_ubo.code if obj.country_of_ubo else None
 
     def get_manager(self, obj):
         return obj.manager.email if obj.manager else None
@@ -116,6 +120,10 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         required=True,
     )
     country = serializers.PrimaryKeyRelatedField(
+        queryset=Country.objects.all(),
+        required=True,
+    )
+    country_of_ubo = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
         required=True,
     )
@@ -152,6 +160,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
 class ProjectDetailSerializer(serializers.ModelSerializer):
     status = serializers.ReadOnlyField(source='status.name')
     country = serializers.ReadOnlyField(source='country.code')
+    country_of_ubo = serializers.ReadOnlyField(source='country_of_ubo.code')
     manager = serializers.ReadOnlyField(source='manager.name')
     client = serializers.ReadOnlyField(source='client.name')
     department = serializers.ReadOnlyField(source='department.name')
@@ -162,22 +171,6 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        # fields = [
-        #     'id',
-        #     'name',
-        #     'description',
-        #     'project_color',
-        #     'is_chargeable',
-        #     'status',
-        #     'country',
-        #     'manager',
-        #     'client',
-        #     'department',
-        #     'service_line',
-        #     'service_type',
-        #     'tasks',
-        #     'codes',
-        # ]
         fields = '__all__'
 
     def get_tasks(self, obj):

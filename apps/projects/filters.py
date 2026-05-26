@@ -27,6 +27,10 @@ class ProjectFilter(django_filters.FilterSet):
         field_name='country__code',
         lookup_expr='icontains'
     )
+    country_of_ubo_code = django_filters.CharFilter(
+        field_name='country_of_ubo__code',
+        lookup_expr='icontains'
+    )
     department_name = django_filters.CharFilter(
         field_name='department__name',
         lookup_expr='icontains'

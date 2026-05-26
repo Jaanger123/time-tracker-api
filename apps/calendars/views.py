@@ -323,8 +323,8 @@ class TimeEntryViewSet(ModelViewSet):
             'task',
         )
 
-        if user.is_staff:
-            return base_queryset
+        # if user.is_staff:
+        #     return base_queryset
 
         return base_queryset.filter(user=user.id)
 

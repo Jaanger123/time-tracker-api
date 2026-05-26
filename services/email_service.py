@@ -77,25 +77,25 @@ def send_reminder(email, start_date, end_date):
     if not user:
         return False
 
-    subject = 'Reminder: Please complete your timesheet'
+    subject = 'Final Notice: Timesheet Submission Required'
 
     message = f'''
-Hello {user.first_name},
+Dear {user.last_name} {user.first_name},
 
 We noticed that your timesheet has missing or incomplete entries for the following period:
 
 📅 Period: {start_date} – {end_date}
 
-To ensure accurate reporting and avoid delays, please review and complete your missing working days as soon as possible.
+This is a final notice that your timesheet remains incomplete.
+Please be informed that timely submission of timesheets is mandatory for payroll processing. 
+If your timesheet is not submitted by the required deadline, your salary payment will not be 
+processed until the timesheet is duly completed, submitted, and approved.
+No exceptions will be made.
 
-If you have already submitted your entries, please disregard this message.
-
-If you need assistance or believe this is an error, feel free to contact the support team.
-
-Thank you for your cooperation.
+Please complete and submit your timesheet immediately.
 
 Best regards,
-Time Tracker System
+HR / Finance Department
 '''
 
     send_email(

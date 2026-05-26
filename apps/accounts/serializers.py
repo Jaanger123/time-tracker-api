@@ -76,19 +76,6 @@ class DepartmentSerializer(serializers.ModelSerializer):
         return UserReadSerializer(managers, many=True).data
 
 
-# class DepartmentDetailSerializer(serializers.ModelSerializer):
-#     members = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = Department
-#         fields = '__all__'
-
-#     def get_members(self, obj):
-#         members = User.objects.filter(department=obj).distinct()
-
-#         return UserReadSerializer(members, many=True).data
-
-
 class DepartmentRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = DepartmentRole
@@ -150,7 +137,7 @@ class LogoutSerializer(serializers.Serializer):
 		try:
 			RefreshToken(self.token).blacklist()
 		except TokenError:
-			self.fail('Incorrect token')
+			raise serializers.ValidationError('Incorrect token')
 
 
 class UserReadSerializer(serializers.ModelSerializer):
@@ -169,6 +156,7 @@ class UserReadSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
+            'phone_number',
             'role',
             'position',
             'grade',
@@ -235,6 +223,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
+            'phone_number',
             'role',
             'position',
             'grade',
