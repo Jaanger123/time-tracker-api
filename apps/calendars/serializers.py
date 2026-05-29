@@ -31,6 +31,12 @@ class CountrySettingsSerializer(serializers.ModelSerializer):
         return value
 
 
+class LeaveDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveDocument
+        fields = '__all__'
+
+
 class TimeEntryReadSerializer(serializers.ModelSerializer):
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
@@ -38,6 +44,7 @@ class TimeEntryReadSerializer(serializers.ModelSerializer):
     project_code = serializers.SerializerMethodField()
     task_type = serializers.SerializerMethodField()
     task = serializers.SerializerMethodField()
+    leave_document = serializers.SerializerMethodField()
 
     class Meta:
         model = TimeEntry
@@ -61,6 +68,16 @@ class TimeEntryReadSerializer(serializers.ModelSerializer):
     def get_task(self, obj):
         return obj.task.name if obj.task else None
 
+    def get_leave_document(self, obj):
+        if not obj.leave_document:
+            return None
+
+        return {
+            'id': obj.leave_document.id,
+            'name': Path(obj.leave_document.file.name).name,
+            'url': obj.leave_document.file.url,
+        }
+
 
 class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.email')
@@ -70,6 +87,7 @@ class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
     project_code = serializers.SerializerMethodField()
     task_type = serializers.SerializerMethodField()
     task = serializers.SerializerMethodField()
+    leave_document = serializers.SerializerMethodField()
 
     class Meta:
         model = TimeEntry
@@ -92,6 +110,16 @@ class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
 
     def get_task(self, obj):
         return obj.task.name if obj.task else None
+
+    def get_leave_document(self, obj):
+        if not obj.leave_document:
+            return None
+
+        return {
+            'id': obj.leave_document.id,
+            'name': Path(obj.leave_document.file.name).name,
+            'url': obj.leave_document.file.url,
+        }
 
 
 class TimeEntryCreateSerializer(serializers.ModelSerializer):
@@ -124,6 +152,11 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         queryset=Task.objects.all(),
         required=True
     )
+    leave_document = serializers.FileField(
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
 
     class Meta:
         model = TimeEntry
@@ -133,21 +166,22 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         start_date = attrs.get('start_date')
         end_date = attrs.get('end_date')
-        date = attrs.get('date')
 
         if request.method in ['PUT', 'PATCH']:
             return attrs
 
-        if not date and (not start_date or not end_date):
+        if 'date' in attrs:
+            attrs.pop('date')
+
+        if not start_date or not end_date:
             raise serializers.ValidationError(
-                'Provide \'date\' or \'start_date\' and \'end_date\'.'
+                {'message': 'Provide \'start_date\' and \'end_date\'.'}
             )
 
-        if start_date and end_date:
-            if start_date > end_date:
-                raise serializers.ValidationError(
-                    '\'start_date\' cannot be greater than \'end_date\'.'
-                )
+        if start_date > end_date:
+            raise serializers.ValidationError(
+                {'message': '\'start_date\' cannot be greater than \'end_date\'.'}
+            )
 
         return attrs
 
@@ -158,10 +192,20 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         start_date = validated_data.pop('start_date', None)
         end_date = validated_data.pop('end_date', None)
         single_date = request.query_params.get('single_date', 'false')
+        leave_document = validated_data.pop('leave_document', None)
+
+        leave_document_obj = None
+
+        if leave_document:
+            leave_document_obj = LeaveDocument.objects.create(
+                user=self.context['request'].user,
+                file=leave_document
+            )
 
         if start_date == end_date and single_date == 'true':
             return TimeEntry.objects.create(
                 date=start_date,
+                leave_document=leave_document_obj,
                 **validated_data
             )
 
@@ -199,19 +243,18 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
             is_holiday = key_full in holidays or key_recurring in holidays
             is_working_weekend = key_full in working_weekends or key_recurring in working_weekends
 
-            # Handle weekends
             if not weekends_included and current_date.weekday() >= 5 and not is_working_weekend:
                 current_date += timedelta(days=1)
                 continue
 
-            # Handle holidays
             if not holidays_included and is_holiday:
                 current_date += timedelta(days=1)
                 continue
-
+            print(validated_data)
             entries.append(
                 TimeEntry(
                     date=current_date,
+                    leave_document=leave_document_obj,
                     **validated_data
                 )
             )

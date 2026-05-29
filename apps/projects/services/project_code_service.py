@@ -42,7 +42,7 @@ def create_initial_code(project):
                 code = generate_base_code(
                     project=project, 
                     year=str(month.year)
-                ) + f'_M{month.month}'
+                ) + f'_M{month.month:02d}'
                 project_codes.append(ProjectCode(project=project, code=code))
 
             return ProjectCode.objects.bulk_create(project_codes)
@@ -52,15 +52,14 @@ def create_initial_code(project):
                 project=project, 
                 year=str(project.agreement_date.year)
             )
-            queryset = ProjectCode.objects.filter(code__contains=base_code)
+            queryset = ProjectCode.objects.filter(project=project)
             last_code_number = 0
 
-            if queryset:
-                for obj in queryset:
-                    code_number = int(obj.code.split('_')[-1])
-                    last_code_number = max(last_code_number, code_number)
+            for obj in queryset:
+                code_number = int(obj.code.split('_')[-1])
+                last_code_number = max(last_code_number, code_number)
 
-            code = base_code + f'_{last_code_number + 1}'
+            code = base_code + f'_{last_code_number + 1:02d}'
 
             return ProjectCode.objects.create(
                 project=project,
@@ -83,7 +82,7 @@ def create_next_month_code(project):
         project=project, 
         year=str(today.year)
     )
-    new_code = f'{base_code}_M{today.month}'
+    new_code = f'{base_code}_M{today.month:02d}'
 
     try:
         ProjectCode.objects.create(

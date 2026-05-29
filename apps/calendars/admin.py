@@ -7,5 +7,6 @@ from .models import *
 class GlobalSettingsAdmin(admin.ModelAdmin):
     pass
 
+admin.site.register(LeaveDocument)
 admin.site.register(TimeEntry)
 admin.site.register(Calendar)

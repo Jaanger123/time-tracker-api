@@ -1,6 +1,8 @@
+from calendar import monthrange
+
 from collections import defaultdict
 
-from datetime import datetime
+from datetime import datetime, date
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
@@ -84,7 +86,7 @@ class TimeEntryViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
     def paginate_queryset(self, queryset):
-        if self.action == 'list':
+        if self.action == 'list' or self.action == 'dashboard':
             return None
 
         return super().paginate_queryset(queryset)
@@ -301,13 +303,70 @@ class TimeEntryViewSet(ModelViewSet):
 
         return self.get_paginated_response(page)
 
+    @action(detail=False, methods=['get'])
+    def dashboard(self, request):
+        user = request.user
+
+        year = int(request.query_params.get('year'))
+        month = int(request.query_params.get('month'))
+
+        start_date = date(year, month, 1)
+        end_date = date(year, month, monthrange(year, month)[1])
+
+        settings = CountrySettings.get_settings(user.country_id)
+
+        daily_hours = settings.hours_per_day
+        working_days = set(settings.working_days)
+
+        queryset = TimeEntry.objects.filter(
+            user=user,
+            date__range=(start_date, end_date)
+        )
+
+        total_hours = (
+            queryset.aggregate(
+                total=Sum('hours')
+            )['total'] or 0
+        )
+
+        total_records = queryset.count()
+
+        working_days_list = get_working_days_list(
+            start_date,
+            end_date,
+            user.country_id,
+            working_days
+        )
+
+        total_working_days = len(working_days_list)
+
+        expected_hours = total_working_days * daily_hours
+
+        worked_days = (
+            queryset.values_list('date', flat=True)
+            .distinct()
+            .count()
+        )
+
+        completion_rate = 0
+
+        if expected_hours > 0:
+            completion_rate = round(
+                (total_hours / expected_hours) * 100,
+                2
+            )
+
+        return Response({
+            'total_hours': total_hours,
+            'expected_hours': expected_hours,
+            'completion_rate': completion_rate,
+            'worked_days': worked_days,
+            'total_working_days': total_working_days,
+            'total_records': total_records,
+        })
+
     def get_serializer_class(self):
-        # user = self.request.user
-
         if self.action in ['list', 'retrieve']:
-            # if user.is_staff:
-            #     return TimeEntryAdminReadSerializer
-
             return TimeEntryReadSerializer
 
         return TimeEntryCreateSerializer

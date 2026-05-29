@@ -1,3 +1,7 @@
+import uuid
+
+from pathlib import Path
+
 from datetime import date
 
 from django.utils.translation import gettext_lazy as _
@@ -11,6 +15,16 @@ from apps.clients.models import Client
 
 
 User = get_user_model()
+
+def leave_document_upload_path(instance, filename):
+    ext = Path(filename).suffix
+    stem = Path(filename).stem
+
+    return (
+        f'leave_documents/'
+        f'user_{instance.user_id}/'
+        f'{stem}_{uuid.uuid4().hex[:8]}{ext}'
+    )
 
 
 class CountrySettings(models.Model):
@@ -45,6 +59,26 @@ class CountrySettings(models.Model):
         return f'{self.country} settings'
 
 
+class LeaveDocument(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='leave_documents'
+    )
+    file = models.FileField(
+        upload_to=leave_document_upload_path
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return self.file.name
+
+
 class TimeEntry(models.Model):
     date = models.DateField(null=True, blank=True)
     hours = models.IntegerField()
@@ -57,6 +91,13 @@ class TimeEntry(models.Model):
     project_code = models.ForeignKey(ProjectCode, on_delete=models.SET_NULL, null=True, blank=True)
     task_type = models.ForeignKey(TaskType, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+    leave_document = models.ForeignKey(
+        LeaveDocument,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='time_entries'
+    )
 
     class Meta:
         verbose_name_plural = _('Time entries')
