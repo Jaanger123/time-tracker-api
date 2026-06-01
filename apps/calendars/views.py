@@ -85,6 +85,29 @@ class TimeEntryViewSet(ModelViewSet):
     serializer_class = TimeEntryReadSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return TimeEntryReadSerializer
+
+        return TimeEntryCreateSerializer
+
+    def get_queryset(self):
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        base_queryset = self.queryset
+        user = self.request.user
+
+        if start_date and end_date:
+            base_queryset = base_queryset.filter(date__gte=start_date, date__lte=end_date)
+
+        return base_queryset.filter(user=user.id)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
     def paginate_queryset(self, queryset):
         if self.action == 'list' or self.action == 'dashboard':
             return None
@@ -364,34 +387,6 @@ class TimeEntryViewSet(ModelViewSet):
             'total_working_days': total_working_days,
             'total_records': total_records,
         })
-
-    def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
-            return TimeEntryReadSerializer
-
-        return TimeEntryCreateSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-
-        base_queryset = TimeEntry.objects.select_related(
-            'country',
-            'client',
-            'project_code',
-            'task_type',
-            'task',
-        )
-
-        # if user.is_staff:
-        #     return base_queryset
-
-        return base_queryset.filter(user=user.id)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    def get_serializer_context(self):
-        return {'request': self.request}
 
 
 class CalendarViewSet(ModelViewSet):
