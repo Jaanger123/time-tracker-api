@@ -131,7 +131,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-
 # Media files (Leave documents)
 
 MEDIA_URL = '/media/'
@@ -166,11 +165,7 @@ SIMPLE_JWT = {
 
 # CORS
 
-# CORS_ALLOW_ALL_ORIGINS = False
-
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
+CORS_ALLOW_ALL_ORIGINS = False
 
 
 # CSRF
@@ -180,6 +175,7 @@ CORS_ALLOWED_ORIGINS = [
 #     cast=lambda v: [s.strip() for s in v.split(',')],
 #     default=''
 # )
+
 
 # Security
 
