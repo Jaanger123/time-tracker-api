@@ -20,6 +20,14 @@ class ClientFilter(django_filters.FilterSet):
         field_name='sector__name',
         lookup_expr='icontains'
     )
+    country_code = django_filters.CharFilter(
+        field_name='country__code',
+        lookup_expr='icontains'
+    )
+    country_of_ubo_code = django_filters.CharFilter(
+        field_name='country_of_ubo__code',
+        lookup_expr='icontains'
+    )
 
     class Meta:
         model = Client

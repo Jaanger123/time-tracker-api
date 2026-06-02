@@ -250,7 +250,7 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
             if not holidays_included and is_holiday:
                 current_date += timedelta(days=1)
                 continue
-            print(validated_data)
+
             entries.append(
                 TimeEntry(
                     date=current_date,

@@ -81,7 +81,6 @@ class ProjectViewSet(ModelViewSet):
     queryset = Project.objects.all().select_related(
         'status', 
         'country', 
-        'country_of_ubo', 
         'manager', 
         'client', 
         'department', 
@@ -94,7 +93,7 @@ class ProjectViewSet(ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ProjectFilter
-    ordering_fields = ['code', 'client_name', 'manager_email', 'country_code', 'country_of_ubo_code', 'department_name']
+    ordering_fields = ['code', 'client_name', 'manager_email', 'country_code', 'department_name']
 
     def _export_excel(self, queryset):
         columns = [
@@ -104,7 +103,6 @@ class ProjectViewSet(ModelViewSet):
             'ic',
             'client_name',
             'country_code',
-            'country_of_ubo_code',
             'is_chargeable',
             'is_code_recurring',
             'status_name',
@@ -123,7 +121,6 @@ class ProjectViewSet(ModelViewSet):
             'IC',
             'Client Name',
             'Country',
-            'Country of UBO',
             'Is Chargeable',
             'Is Code Reccuring',
             'Status',
@@ -164,7 +161,6 @@ class ProjectViewSet(ModelViewSet):
             client_name=F('client__name'),
             manager_email=F('manager__email'),
             country_code=F('country__code'),
-            country_of_ubo_code=F('country_of_ubo__code'),
             department_name=F('department__name'),
             status_name=F('status__name'),
             service_line_name=F('service_line__name'),

@@ -32,6 +32,7 @@ class ClientViewSet(ModelViewSet):
     queryset = Client.objects.all().select_related(
         'sector',
         'country',
+        'country_of_ubo', 
         'pie'
     ).order_by('id')
     serializer_class = ClientSerializer
@@ -40,7 +41,7 @@ class ClientViewSet(ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ClientFilter
-    ordering_fields = ['name', 'group', 'personal_number', 'sector_name']
+    ordering_fields = ['name', 'group', 'personal_number', 'sector_name', 'country_code', 'country_of_ubo_code']
 
     def _export_excel(self, queryset):
         columns = [
@@ -51,6 +52,7 @@ class ClientViewSet(ModelViewSet):
             'bvd',
             'sector_name',
             'country_code',
+            'country_of_ubo_code',
             'pie_name',
         ]
 
@@ -62,6 +64,7 @@ class ClientViewSet(ModelViewSet):
             'BVD',
             'Sector',
             'Country',
+            'Country of UBO',
             'Pie',
         ]
 
@@ -94,6 +97,7 @@ class ClientViewSet(ModelViewSet):
         return Client.objects.annotate(
             sector_name=F('sector__name'),
             country_code=F('country__code'),
+            country_of_ubo_code=F('country_of_ubo__code'),
             pie_name=F('pie__name'),
         )
 

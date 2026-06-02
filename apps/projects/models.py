@@ -57,7 +57,6 @@ class Project(models.Model):
     is_code_recurring = models.BooleanField(default=False)
     status = models.ForeignKey(ProjectStatus, on_delete=models.SET_NULL, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, related_name='projects', null=True, blank=True)
-    country_of_ubo = models.ForeignKey(Country, on_delete=models.SET_NULL, related_name='ubo_projects', null=True, blank=True)
     manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)

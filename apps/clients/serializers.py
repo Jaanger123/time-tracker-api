@@ -26,6 +26,7 @@ class PieSerializer(serializers.ModelSerializer):
 class ClientSerializer(serializers.ModelSerializer):
     sector = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
+    country_of_ubo = serializers.SerializerMethodField()
     pie = serializers.SerializerMethodField()
 
     class Meta:
@@ -37,6 +38,9 @@ class ClientSerializer(serializers.ModelSerializer):
 
     def get_country(self, obj):
         return obj.country.code if obj.country else None
+
+    def get_country_of_ubo(self, obj):
+        return obj.country_of_ubo.code if obj.country_of_ubo else None
 
     def get_pie(self, obj):
         return obj.pie.name if obj.pie else None
@@ -63,6 +67,10 @@ class ClientCreateSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     country = serializers.PrimaryKeyRelatedField(
+        queryset=Country.objects.all(),
+        required=True,
+    )
+    country_of_ubo = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
         required=True,
     )

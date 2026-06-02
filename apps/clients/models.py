@@ -31,6 +31,7 @@ class Client(models.Model):
     bvd = models.CharField(max_length=100, blank=True)
     sector = models.ForeignKey(Sector, on_delete=models.SET_NULL, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
+    country_of_ubo = models.ForeignKey(Country, on_delete=models.SET_NULL, related_name='ubo_projects', null=True, blank=True)
     pie = models.ForeignKey(Pie, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):

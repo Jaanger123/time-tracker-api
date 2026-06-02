@@ -89,6 +89,7 @@ def filter_report_by_params(request, queryset):
     code = request.query_params.get('code')
     user_department = request.query_params.get('user_department')
     project_department = request.query_params.get('project_department')
+    user_country_code = request.query_params.get('user_country_code')
     country_code = request.query_params.get('country_code')
     position = request.query_params.get('position')
     detailed_grade = request.query_params.get('detailed_grade')
@@ -122,6 +123,9 @@ def filter_report_by_params(request, queryset):
 
     if project_department:
         queryset = queryset.filter(project_code__project__department__name__icontains=project_department)
+
+    if user_country_code:
+        queryset = queryset.filter(user__country__code__icontains=user_country_code)
 
     if country_code:
         queryset = queryset.filter(country__code__icontains=country_code)

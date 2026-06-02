@@ -190,6 +190,7 @@ class TimeEntryViewSet(ModelViewSet):
         queryset = (
             queryset.annotate(
                 user_email=F('user__email'),
+                user_country_code=F('user__country__code'),
                 country_code=F('country__code'),
                 user_department=F('user__department__name'),
                 position=F('user__position__name'),
@@ -204,6 +205,7 @@ class TimeEntryViewSet(ModelViewSet):
             .values(
                 'date',
                 'user_email',
+                'user_country_code',
                 'country_code',
                 'user_department',
                 'position',

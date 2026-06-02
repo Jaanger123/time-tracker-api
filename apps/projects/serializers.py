@@ -68,7 +68,6 @@ class ProjectCodeReadSerializer(serializers.ModelSerializer):
 class ProjectReadSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
-    country_of_ubo = serializers.SerializerMethodField()
     manager = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
     department = serializers.SerializerMethodField()
@@ -86,9 +85,6 @@ class ProjectReadSerializer(serializers.ModelSerializer):
 
     def get_country(self, obj):
         return obj.country.code if obj.country else None
-
-    def get_country_of_ubo(self, obj):
-        return obj.country_of_ubo.code if obj.country_of_ubo else None
 
     def get_manager(self, obj):
         return obj.manager.email if obj.manager else None
@@ -114,16 +110,38 @@ class ProjectReadSerializer(serializers.ModelSerializer):
         return ProjectCodeReadSerializer(codes, many=True).data
 
 
+class ProjectDetailSerializer(serializers.ModelSerializer):
+    status = serializers.ReadOnlyField(source='status.name')
+    country = serializers.ReadOnlyField(source='country.code')
+    manager = serializers.ReadOnlyField(source='manager.name')
+    client = serializers.ReadOnlyField(source='client.name')
+    department = serializers.ReadOnlyField(source='department.name')
+    service_line = serializers.ReadOnlyField(source='service_line.name')
+    service_type = serializers.ReadOnlyField(source='service_type.name')
+    tasks = serializers.SerializerMethodField()
+    codes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = '__all__'
+
+    def get_tasks(self, obj):
+        tasks = Task.objects.filter(task_type=obj.task_type)
+
+        return TaskReadSerializer(tasks, many=True).data
+
+    def get_codes(self, obj):
+        codes = ProjectCode.objects.filter(project=obj.id).order_by('created_at')
+
+        return ProjectCodeReadSerializer(codes, many=True).data
+
+
 class ProjectCreateSerializer(serializers.ModelSerializer):
     status = serializers.PrimaryKeyRelatedField(
         queryset=ProjectStatus.objects.all(),
         required=True,
     )
     country = serializers.PrimaryKeyRelatedField(
-        queryset=Country.objects.all(),
-        required=True,
-    )
-    country_of_ubo = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
         required=True,
     )
@@ -155,30 +173,3 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = '__all__'
-
-
-class ProjectDetailSerializer(serializers.ModelSerializer):
-    status = serializers.ReadOnlyField(source='status.name')
-    country = serializers.ReadOnlyField(source='country.code')
-    country_of_ubo = serializers.ReadOnlyField(source='country_of_ubo.code')
-    manager = serializers.ReadOnlyField(source='manager.name')
-    client = serializers.ReadOnlyField(source='client.name')
-    department = serializers.ReadOnlyField(source='department.name')
-    service_line = serializers.ReadOnlyField(source='service_line.name')
-    service_type = serializers.ReadOnlyField(source='service_type.name')
-    tasks = serializers.SerializerMethodField()
-    codes = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Project
-        fields = '__all__'
-
-    def get_tasks(self, obj):
-        tasks = Task.objects.filter(task_type=obj.task_type)
-
-        return TaskReadSerializer(tasks, many=True).data
-
-    def get_codes(self, obj):
-        codes = ProjectCode.objects.filter(project=obj.id).order_by('created_at')
-
-        return ProjectCodeReadSerializer(codes, many=True).data
