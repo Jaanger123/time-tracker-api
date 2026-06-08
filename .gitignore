@@ -220,5 +220,5 @@ notes.txt
 # Project
 time_tracker_tables.xlsx
 time_tracker_db_final.sql
-apps/accounts/management/
+# apps/accounts/management/
 settings-dev.py
