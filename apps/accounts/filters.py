@@ -48,8 +48,9 @@ class UserFilter(django_filters.FilterSet):
         field_name='date_joined',
         lookup_expr='lte'
     )
-    is_active = django_filters.BooleanFilter(
-        field_name='is_active'
+    status_name = django_filters.CharFilter(
+        field_name='status__name',
+        lookup_expr='icontains'
     )
 
     class Meta:

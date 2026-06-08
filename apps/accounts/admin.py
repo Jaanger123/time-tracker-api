@@ -22,6 +22,7 @@ class UserAdmin(BaseUserAdmin):
             'date_left', 
             'country',
             'activation_code',
+            'status'
         )}),
         (_('Position info'), {'fields': ('position', 'grade')}),
         (_('Department info'), {'fields': ('department', 'department_role')}),
@@ -55,6 +56,8 @@ class UserAdmin(BaseUserAdmin):
     ordering = ('email',)
 
 admin.site.register(User, UserAdmin)
+admin.site.register(UserStatus)
+admin.site.register(UserStatusHistory)
 admin.site.register(Role)
 admin.site.register(Position)
 admin.site.register(Grade)

@@ -96,15 +96,13 @@ def filter_report_by_params(request, queryset):
     project_service_line = request.query_params.get('project_service_line')
     description = request.query_params.get('description')
     task_name = request.query_params.get('task_name')
+    status_name = request.query_params.get('status_name')
 
     if start_date:
         queryset = queryset.filter(date__gte=start_date)
 
     if end_date:
         queryset = queryset.filter(date__lte=end_date)
-
-    if date:
-        queryset = queryset.filter(date=date)
 
     if date:
         queryset = queryset.filter(date=date)
@@ -138,6 +136,53 @@ def filter_report_by_params(request, queryset):
 
     if project_service_line:
         queryset = queryset.filter(project_code__project__service_line__name__icontains=project_service_line)
+
+    if description:
+        queryset = queryset.filter(description__icontains=description)
+
+    if task_name:
+        queryset = queryset.filter(task__name__icontains=task_name)
+
+    if status_name:
+        queryset = queryset.filter(user__status__name__icontains=status_name)
+
+    return queryset
+
+def filter_leaves_by_params(request, queryset):
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+    date = request.query_params.get('date')
+    user_email = request.query_params.get('user_email')
+    user_country_code = request.query_params.get('user_country_code')
+    user_department = request.query_params.get('user_department')
+    position = request.query_params.get('position')
+    detailed_grade = request.query_params.get('detailed_grade')
+    description = request.query_params.get('description')
+    task_name = request.query_params.get('task_name')
+
+    if start_date:
+        queryset = queryset.filter(date__gte=start_date)
+
+    if end_date:
+        queryset = queryset.filter(date__lte=end_date)
+
+    if date:
+        queryset = queryset.filter(date=date)
+
+    if user_email:
+        queryset = queryset.filter(user__email__icontains=user_email)
+
+    if user_department:
+        queryset = queryset.filter(user__department__name__icontains=user_department)
+
+    if user_country_code:
+        queryset = queryset.filter(user__country__code__icontains=user_country_code)
+
+    if position:
+        queryset = queryset.filter(user__position__name__icontains=position)
+
+    if detailed_grade:
+        queryset = queryset.filter(user__grade__name__icontains=detailed_grade)
 
     if description:
         queryset = queryset.filter(description__icontains=description)

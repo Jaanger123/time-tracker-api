@@ -10,6 +10,8 @@ from .views import *
 
 router = DefaultRouter()
 router.register('users', UserViewSet)
+router.register('statuses', UserStatusViewSet)
+router.register('status-history', UserStatusHistoryViewSet)
 router.register('roles', RoleViewSet)
 router.register('positions', PositionViewSet)
 router.register('grades', GradeViewSet)

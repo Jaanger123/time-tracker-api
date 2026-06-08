@@ -364,3 +364,43 @@ class CalendarSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class LeaveReportSerializer(serializers.ModelSerializer):
+    user_email = serializers.CharField(source='user.email')
+    user_country_code = serializers.CharField(source='user.country.code')
+    user_department = serializers.CharField(source='user.department.name')
+    position = serializers.CharField(source='user.position.name')
+    detailed_grade = serializers.CharField(source='user.grade.name')
+    task_type = serializers.CharField(source='task_type.name')
+    task = serializers.CharField(source='task.name')
+    leave_document = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TimeEntry
+        fields = [
+            'date',
+            'user_email',
+            'user_country_code',
+            'user_department',
+            'position',
+            'detailed_grade',
+            'task_type',
+            'task',
+            'hours',
+            'description',
+            'leave_document',
+        ]
+
+    def get_country(self, obj):
+        return obj.country.code if obj.country else None
+
+    def get_leave_document(self, obj):
+        if not obj.leave_document:
+            return None
+
+        return {
+            'id': obj.leave_document.id,
+            'name': Path(obj.leave_document.file.name).name,
+            'url': obj.leave_document.file.url,
+        }

@@ -1,7 +1,9 @@
+from datetime import date
+
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
-from django.db.models import F
+from django.db.models import F, OuterRef, Subquery
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.generics import GenericAPIView
@@ -67,19 +69,6 @@ class DepartmentViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = None
 
-    # @action(detail=True, methods=['get'])
-    # def members(self, request):
-    #     members = User.objects.filter(task_type__name='Internal')
-    #     serializer = TaskSerializer(tasks, many=True)
-
-    #     return Response(serializer.data)
-
-    def get_serializer_class(self):
-        # if self.action == 'retrieve':
-        #     return DepartmentDetailSerializer
-
-        return DepartmentSerializer
-
 
 class DepartmentRoleViewSet(ModelViewSet):
     queryset = DepartmentRole.objects.all()
@@ -120,7 +109,17 @@ class ActivateUserAPIView(APIView):
         user.activation_code = None
         user.save()
 
-        return Response({'detail': 'Account activated'})
+        active_status = UserStatus.objects.get(
+            name=UserStatus.ACTIVE
+        )
+
+        create_user_status_history(
+            user=user,
+            status=active_status,
+            started_at=date.today()
+        )
+
+        return Response({'message': 'Account activated'})
 
 
 class LogoutView(GenericAPIView):
@@ -135,6 +134,20 @@ class LogoutView(GenericAPIView):
 		return Response({'message': 'Successfully logged out'}, status.HTTP_200_OK)
 
 
+class UserStatusViewSet(ModelViewSet):
+    queryset = UserStatus.objects.all()
+    serializer_class = UserStatusSerializer
+    permission_classes = [IsAdminRole]
+    pagination_class = None
+
+
+class UserStatusHistoryViewSet(ModelViewSet):
+    queryset = UserStatusHistory.objects.all()
+    serializer_class = UserStatusHistorySerializer
+    permission_classes = [IsAdminRole]
+    pagination_class = None
+
+
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all().select_related(
         'role', 
@@ -142,7 +155,8 @@ class UserViewSet(ModelViewSet):
         'grade', 
         'department', 
         'department_role', 
-        'country'
+        'country',
+        'status',
     ).order_by('id')
     serializer_class = UserReadSerializer
     permission_classes = [IsAuthenticated]
@@ -160,8 +174,8 @@ class UserViewSet(ModelViewSet):
         'grade_name',
         'country_code',
         'role_name',
+        'status_name',
         'date_joined',
-        'is_active'
     ]
 
     def _export_excel(self, queryset):
@@ -169,8 +183,8 @@ class UserViewSet(ModelViewSet):
             'first_name',
             'last_name',
             'email',
+            'status_name',
             'phone_number',
-            'is_active',
             'role_name',
             'position_name',
             'grade_name',
@@ -185,8 +199,8 @@ class UserViewSet(ModelViewSet):
             'First Name',
             'Last Name',
             'Email',
+            'Status',
             'Phone Number',
-            'Is Active',
             'Role',
             'Position',
             'Grade',
@@ -213,20 +227,34 @@ class UserViewSet(ModelViewSet):
         return self.get_paginated_response(serializer.data)
 
     def get_queryset(self):
-        return User.objects.annotate(
+        queryset = super().get_queryset()
+
+        latest_status_date = (
+            UserStatusHistory.objects
+            .filter(user=OuterRef('pk'))
+            .order_by('-started_at', '-id')
+            .values('started_at')[:1]
+        )
+
+        return queryset.annotate(
             position_name=F('position__name'),
             department_name=F('department__name'),
             department_role_name=F('department_role__name'),
             grade_name=F('grade__name'),
             country_code=F('country__code'),
             role_name=F('role__name'),
+            status_name=F('status__name'),
+            status_started_at=Subquery(latest_status_date),
         )
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
-            return UserReadSerializer
+        if self.action == 'create':
+            return UserCreateSerializer
 
-        return UserCreateSerializer
+        if self.action in ['update', 'partial_update']:
+            return UserUpdateSerializer
+
+        return UserReadSerializer
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'me', 'managers']:

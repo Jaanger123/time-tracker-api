@@ -8,6 +8,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.clients.serializers import ClientSerializer
 from apps.clients.models import Client
+from .services import create_user_status_history
 from .models import *
 
 
@@ -140,6 +141,18 @@ class LogoutSerializer(serializers.Serializer):
 			raise serializers.ValidationError('Incorrect token')
 
 
+class UserStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserStatus
+        fields = '__all__'
+
+
+class UserStatusHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserStatusHistory
+        fields = '__all__'
+
+
 class UserReadSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     position = serializers.SerializerMethodField()
@@ -148,6 +161,8 @@ class UserReadSerializer(serializers.ModelSerializer):
     department_role = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
     country_id = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    status_started_at = serializers.DateField(read_only=True)
 
     class Meta:
         model = User
@@ -164,6 +179,8 @@ class UserReadSerializer(serializers.ModelSerializer):
             'department_role',
             'country',
             'country_id',
+            'status',
+            'status_started_at',
             'is_active',
             'date_joined',
             'date_left',
@@ -189,6 +206,9 @@ class UserReadSerializer(serializers.ModelSerializer):
 
     def get_country_id(self, obj):
         return obj.country.id if obj.country else None
+
+    def get_status(self, obj):
+        return obj.status.name if obj.status else None
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -216,6 +236,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
         queryset=Country.objects.all(),
         required=True,
     )
+    status_started_at = serializers.DateField(
+        write_only=True
+    )
 
     class Meta:
         model = User
@@ -230,21 +253,111 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'department',
             'department_role',
             'country',
+            'status_started_at',
         ]
 
-    def validate(self, data):
-        if data.get('email'):
-            data['email'] = data['email'].lower()
+    def validate(self, attrs):
+        if attrs.get('email'):
+            attrs['email'] = attrs['email'].lower()
 
-        return super().validate(data)
+        return attrs
 
     def create(self, validated_data):
+        started_at = validated_data.pop('status_started_at')
+
         user = User.objects.create(
             **validated_data,
             is_active=False
         )
 
+        registered_status = UserStatus.objects.get(
+            name=UserStatus.REGISTERED
+        )
+
+        create_user_status_history(
+            user=user,
+            status=registered_status,
+            started_at=started_at
+        )
+
         return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    status = serializers.PrimaryKeyRelatedField(
+        queryset=UserStatus.objects.all(),
+        required=False
+    )
+    status_started_at = serializers.DateField(
+        required=False
+    )
+
+    class Meta:
+        model = User
+
+        fields = [
+            'first_name',
+            'last_name',
+            'phone_number',
+            'role',
+            'position',
+            'grade',
+            'department',
+            'department_role',
+            'country',
+            'status',
+            'status_started_at',
+        ]
+
+    def validate(self, attrs):
+        status = attrs.get('status')
+        started_at = attrs.get('status_started_at')
+
+        if status and not started_at:
+            raise serializers.ValidationError({
+                'message':
+                    '\'status_started_at\' field is required when changing status.'
+            })
+
+        if started_at and not status:
+            raise serializers.ValidationError({
+                'message':
+                    '\'status\' field is required when \'status_started_at\' is provided.'
+            })
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        status = validated_data.pop('status', None)
+        started_at = validated_data.pop('status_started_at', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        if status:
+            latest_history = (
+                instance.status_history
+                .order_by('-started_at', '-id')
+                .first()
+            )
+
+            should_create_history = (
+                not latest_history
+                or latest_history.status_id != status.id
+                or latest_history.started_at != started_at
+            )
+
+            if should_create_history:
+                create_user_status_history(
+                    user=instance,
+                    status=status,
+                    started_at=started_at
+                )
+
+        return instance
+
 
 class SendRemindersSerializer(serializers.Serializer):
     emails = serializers.ListField(

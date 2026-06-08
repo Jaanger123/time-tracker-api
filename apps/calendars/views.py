@@ -1,8 +1,4 @@
-from calendar import monthrange
-
-from collections import defaultdict
-
-from datetime import datetime, date
+from datetime import datetime
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
@@ -15,10 +11,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 
-from django.db.models import Sum, Max, Q, F
+from django.db.models import F
 from django.http import HttpResponse
 
-from .utils import filter_monitoring_by_params, get_working_days_list, get_country, filter_report_by_params
+from .utils import get_country, filter_report_by_params, filter_leaves_by_params
+from .services.monitoring import get_monitoring_data
+from .services.dashboard import get_dashboard_data
 from .permissions import IsOwnerOrAdmin
 from .serializers import *
 from .models import *
@@ -94,7 +92,7 @@ class TimeEntryViewSet(ModelViewSet):
     def get_queryset(self):
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
-        base_queryset = self.queryset
+        base_queryset = super().get_queryset()
         user = self.request.user
 
         if start_date and end_date:
@@ -176,14 +174,7 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def report(self, request):
-        queryset = TimeEntry.objects.select_related(
-            'user',
-            'country',
-            'client',
-            'project_code',
-            'task_type',
-            'task'
-        )
+        queryset = self.queryset
 
         queryset = filter_report_by_params(request, queryset)
 
@@ -201,6 +192,7 @@ class TimeEntryViewSet(ModelViewSet):
                 project_service_line=F('project_code__project__service_line__name'),
                 task_type_name=F('task_type__name'),
                 task_name=F('task__name'),
+                status_name=F('user__status__name')
             )
             .values(
                 'date',
@@ -218,6 +210,7 @@ class TimeEntryViewSet(ModelViewSet):
                 'task_type_name',
                 'task_name',
                 'description',
+                'status_name',
             )
             .order_by('user_email', 'date')
         )
@@ -232,97 +225,36 @@ class TimeEntryViewSet(ModelViewSet):
         return self.get_paginated_response(page)
 
     @action(detail=False, methods=['get'])
-    def monitoring(self, request):
-        country_id = request.query_params.get('country_id')
-        settings = CountrySettings.get_settings(country_id)
-        daily_hours = settings.hours_per_day
-        working_days = set(settings.working_days)
+    def leaves(self, request):
+        queryset = (
+            self.queryset
+            .filter(task_type__name='Leave')
+            .order_by('user__email', 'date')
+        )
 
+        queryset = filter_leaves_by_params(request, queryset)
+
+        # format_type = request.query_params.get('export', 'json')
+
+        # if format_type == 'excel':
+        #     return self._generate_excel(queryset)
+
+        page = self.paginate_queryset(queryset)
+
+        serializer = LeaveReportSerializer(
+            page,
+            many=True,
+        )
+
+        return self.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def monitoring(self, request):
         start_date = datetime.strptime(request.query_params.get('start_date'), '%Y-%m-%d').date()
         end_date = datetime.strptime(request.query_params.get('end_date'), '%Y-%m-%d').date()
+        country_id = request.query_params.get('country_id')
 
-        queryset = (
-            User.objects
-            .filter(
-                country=country_id,
-                is_active=True
-            )
-            .annotate(
-                total_hours=Sum(
-                    'time_entries__hours',
-                    filter=Q(time_entries__date__range=(start_date, end_date))
-                ),
-                last_updated=Max(
-                    'time_entries__updated_at',
-                    filter=Q(time_entries__date__range=(start_date, end_date))
-                )
-            )
-            .values(
-                'first_name',
-                'last_name',
-                user_email=F('email'),
-                user_id=F('id'),
-                total_hours=F('total_hours'),
-                last_updated=F('last_updated'),
-            )
-            .order_by('email')
-        )
-
-        time_entries = (
-            TimeEntry.objects
-            .filter(
-                user__country=country_id,
-                date__range=(start_date, end_date)
-            )
-            .values(
-                'user_id', 
-                'date'
-            )
-            .annotate(
-                total_hours=Sum('hours')
-            )
-        )
-
-        entries_by_user = defaultdict(dict)
-
-        for row in time_entries:
-            entries_by_user[row['user_id']][row['date']] = row['total_hours']
-
-        working_days_list = get_working_days_list(start_date, end_date, country_id, working_days)
-        required_hours = len(working_days_list) * daily_hours
-        data = []
-
-        for row in queryset:
-            user_id = row['user_id']
-            user_entries = entries_by_user.get(user_id, {})
-
-            missing_days = []
-
-            for day in working_days_list:
-                hours = user_entries.get(day, 0)
-
-                if hours < daily_hours:
-                    missing_days.append({
-                        'date': day,
-                        'worked_hours': hours,
-                        'missing_hours': daily_hours - hours
-                    })
-
-            if row['total_hours'] is None:
-                row['total_hours'] = 0
-
-            row['missing_days'] = missing_days
-            row['missing_days_count'] = len(missing_days)
-            total = row['total_hours']
-
-            completion = (total / required_hours) if required_hours > 0 else 0
-
-            row['required_hours'] = required_hours
-            row['completion'] = round(completion * 100, 2)
-
-            data.append(row)
-
-        data = filter_monitoring_by_params(request, data)
+        data = get_monitoring_data(request, country_id, start_date, end_date)
 
         page = self.paginate_queryset(data)
 
@@ -330,65 +262,13 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
+        month = int(request.query_params.get('month'))
+        year = int(request.query_params.get('year'))
         user = request.user
 
-        year = int(request.query_params.get('year'))
-        month = int(request.query_params.get('month'))
+        data = get_dashboard_data(user, year, month)
 
-        start_date = date(year, month, 1)
-        end_date = date(year, month, monthrange(year, month)[1])
-
-        settings = CountrySettings.get_settings(user.country_id)
-
-        daily_hours = settings.hours_per_day
-        working_days = set(settings.working_days)
-
-        queryset = TimeEntry.objects.filter(
-            user=user,
-            date__range=(start_date, end_date)
-        )
-
-        total_hours = (
-            queryset.aggregate(
-                total=Sum('hours')
-            )['total'] or 0
-        )
-
-        total_records = queryset.count()
-
-        working_days_list = get_working_days_list(
-            start_date,
-            end_date,
-            user.country_id,
-            working_days
-        )
-
-        total_working_days = len(working_days_list)
-
-        expected_hours = total_working_days * daily_hours
-
-        worked_days = (
-            queryset.values_list('date', flat=True)
-            .distinct()
-            .count()
-        )
-
-        completion_rate = 0
-
-        if expected_hours > 0:
-            completion_rate = round(
-                (total_hours / expected_hours) * 100,
-                2
-            )
-
-        return Response({
-            'total_hours': total_hours,
-            'expected_hours': expected_hours,
-            'completion_rate': completion_rate,
-            'worked_days': worked_days,
-            'total_working_days': total_working_days,
-            'total_records': total_records,
-        })
+        return Response(data)
 
 
 class CalendarViewSet(ModelViewSet):

@@ -15,12 +15,6 @@ from .serializers import *
 from .models import *
 
 
-
-latest_code_subquery = ProjectCode.objects.filter(
-    project=OuterRef('pk')
-).order_by('-created_at').values('code')[:1]
-
-
 class ServiceTypeViewSet(ModelViewSet):
     queryset = ServiceType.objects.all()
     serializer_class = ServiceTypeSerializer
@@ -157,6 +151,10 @@ class ProjectViewSet(ModelViewSet):
         return ProjectCreateSerializer
 
     def get_queryset(self):
+        latest_code_subquery = ProjectCode.objects.filter(
+            project=OuterRef('pk')
+        ).order_by('-created_at').values('code')[:1]
+
         return Project.objects.annotate(
             client_name=F('client__name'),
             manager_email=F('manager__email'),
