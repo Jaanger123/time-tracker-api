@@ -1,5 +1,7 @@
 import requests
 
+from celery import shared_task
+
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
@@ -71,20 +73,25 @@ Time Tracker System
         message,
     )
 
-def send_reminder(email, start_date, end_date):
-    user = User.objects.filter(email=email).first()
+@shared_task
+def send_reminder(email, first_name, last_name, missing_days, start_date, end_date):
+    separator = '\n'
+    lines = []
 
-    if not user:
-        return False
+    for day in missing_days:
+        lines.append(
+            f"{day['date']} - missing {day['missing_hours']}h"
+        )
 
     subject = 'Final Notice: Timesheet Submission Required'
 
     message = f'''
-Dear {user.last_name} {user.first_name},
+Dear {last_name} {first_name},
 
 We noticed that your timesheet has missing or incomplete entries for the following period:
 
 📅 Period: {start_date} – {end_date}
+{separator.join(lines)}
 
 This is a final notice that your timesheet remains incomplete.
 Please be informed that timely submission of timesheets is mandatory for payroll processing. 
@@ -99,7 +106,7 @@ HR / Finance Department
 '''
 
     send_email(
-        user.email,
+        email,
         subject,
         message,
     )

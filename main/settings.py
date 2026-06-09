@@ -131,6 +131,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+
 # Media files (Leave documents)
 
 MEDIA_URL = '/media/'
@@ -165,7 +166,11 @@ SIMPLE_JWT = {
 
 # CORS
 
-CORS_ALLOW_ALL_ORIGINS = False
+# CORS_ALLOW_ALL_ORIGINS = False
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
 
 
 # CSRF
@@ -175,7 +180,6 @@ CORS_ALLOW_ALL_ORIGINS = False
 #     cast=lambda v: [s.strip() for s in v.split(',')],
 #     default=''
 # )
-
 
 # Security
 
@@ -221,10 +225,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.projects.tasks.generate_monthly_project_codes',
         'schedule': crontab(minute=0, hour=0, day_of_month=1),
     },
+    'send-timesheet-reminders': {
+        'task': 'apps.calendars.tasks.send_missing_time_entry_reminders',
+        'schedule': crontab(hour=0, minute=5),
+    },
 }
 
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Bishkek'

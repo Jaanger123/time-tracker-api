@@ -1,10 +1,8 @@
-from collections import defaultdict
-
 from django.contrib.auth import get_user_model
 from django.db.models import Sum, Max, Q, F
 
-from apps.calendars.utils import get_working_days_list, filter_monitoring_by_params
-from apps.calendars.models import CountrySettings, TimeEntry
+from apps.calendars.utils import get_working_days_list, filter_monitoring_by_params, calculate_missing_days, get_entries_by_user
+from apps.calendars.models import CountrySettings
 from apps.accounts.models import UserStatus
 
 
@@ -43,25 +41,7 @@ def get_monitoring_data(request, country_id, start_date, end_date):
         .order_by('email')
     )
 
-    time_entries = (
-        TimeEntry.objects
-        .filter(
-            user__country=country_id,
-            date__range=(start_date, end_date)
-        )
-        .values(
-            'user_id', 
-            'date'
-        )
-        .annotate(
-            total_hours=Sum('hours')
-        )
-    )
-
-    entries_by_user = defaultdict(dict)
-
-    for row in time_entries:
-        entries_by_user[row['user_id']][row['date']] = row['total_hours']
+    entries_by_user = get_entries_by_user(country_id, start_date, end_date)
 
     working_days_list = get_working_days_list(start_date, end_date, country_id, working_days)
     required_hours = len(working_days_list) * daily_hours
@@ -71,17 +51,11 @@ def get_monitoring_data(request, country_id, start_date, end_date):
         user_id = row['user_id']
         user_entries = entries_by_user.get(user_id, {})
 
-        missing_days = []
-
-        for day in working_days_list:
-            hours = user_entries.get(day, 0)
-
-            if hours < daily_hours:
-                missing_days.append({
-                    'date': day,
-                    'worked_hours': hours,
-                    'missing_hours': daily_hours - hours
-                })
+        missing_days = calculate_missing_days(
+            user_entries=user_entries,
+            working_days_list=working_days_list,
+            daily_hours=daily_hours,
+        )
 
         if row['total_hours'] is None:
             row['total_hours'] = 0

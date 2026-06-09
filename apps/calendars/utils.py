@@ -1,13 +1,16 @@
+from collections import defaultdict
+
 from datetime import timedelta, datetime
 
 from rest_framework.response import Response
 from rest_framework import status
 
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Sum
 
+from .models import Calendar, CountrySettings
+from apps.calendars.models import TimeEntry
 from apps.accounts.models import Country
-from .models import Calendar
 
 
 class CompletionStatus:
@@ -59,6 +62,78 @@ def get_working_days_list(start_date, end_date, country, working_weekdays={0, 1,
         current += timedelta(days=1)
 
     return total_days
+
+def get_entries_by_user(country_id, start_date, end_date):
+    time_entries = (
+        TimeEntry.objects
+        .filter(
+            user__country=country_id,
+            date__range=(start_date, end_date)
+        )
+        .values('user_id', 'date')
+        .annotate(total_hours=Sum('hours'))
+    )
+
+    entries_by_user = defaultdict(dict)
+
+    for row in time_entries:
+        entries_by_user[row['user_id']][row['date']] = row['total_hours']
+
+    return entries_by_user
+
+def calculate_missing_days(
+    user_entries,
+    working_days_list,
+    daily_hours,
+):
+    missing_days = []
+
+    for day in working_days_list:
+        hours = user_entries.get(day, 0)
+
+        if hours < daily_hours:
+            missing_days.append({
+                'date': day,
+                'worked_hours': hours,
+                'missing_hours': daily_hours - hours,
+            })
+
+    return missing_days
+
+def get_missing_days_for_user(
+    user,
+    start_date,
+    end_date,
+):
+    settings = CountrySettings.get_settings(user.country_id)
+
+    time_entries = (
+        TimeEntry.objects
+        .filter(
+            user=user,
+            date__range=(start_date, end_date)
+        )
+        .values('date')
+        .annotate(total_hours=Sum('hours'))
+    )
+
+    user_entries = {
+        row['date']: row['total_hours']
+        for row in time_entries
+    }
+
+    working_days_list = get_working_days_list(
+        start_date,
+        end_date,
+        user.country_id,
+        set(settings.working_days),
+    )
+
+    return calculate_missing_days(
+        user_entries=user_entries,
+        working_days_list=working_days_list,
+        daily_hours=settings.hours_per_day,
+    )
 
 def get_country(request):
     country_id = request.query_params.get('country')

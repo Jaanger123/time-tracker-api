@@ -3,7 +3,7 @@ from datetime import date
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
-from django.db.models import F, OuterRef, Subquery
+from django.db.models import F, OuterRef, Subquery, Sum
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.generics import GenericAPIView
@@ -19,6 +19,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django_filters.rest_framework import DjangoFilterBackend
 
 from services.email_service import send_activation_email, send_reminder, send_message
+from apps.calendars.utils import get_missing_days_for_user
 from apps.accounts.pagination import UserPagination
 from .permissions import IsAdminRole
 from utils import generate_excel
@@ -283,16 +284,38 @@ class UserViewSet(ModelViewSet):
     def send_reminders(self, request):
         serializer = SendRemindersSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         not_sent = []
 
+        start_date = serializer.validated_data['start_date']
+        end_date = serializer.validated_data['end_date']
+
         for email in serializer.validated_data['emails']:
-            is_sent = send_reminder(
-                email, 
-                serializer.validated_data['start_date'], 
-                serializer.validated_data['end_date']
+            user = User.objects.filter(email=email).first()
+
+            if not user:
+                not_sent.append(email)
+                continue
+
+            missing_days = get_missing_days_for_user(
+                user=user,
+                start_date=start_date,
+                end_date=end_date,
             )
 
-            if not is_sent:
+            if not missing_days:
+                continue
+
+            try:
+                send_reminder.delay(
+                    email=user.email,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    missing_days=missing_days,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            except Exception:
                 not_sent.append(email)
 
         message = 'Reminders sent successfully'
