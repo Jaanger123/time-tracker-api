@@ -38,48 +38,6 @@ class LeaveDocumentSerializer(serializers.ModelSerializer):
 
 
 class TimeEntryReadSerializer(serializers.ModelSerializer):
-    country = serializers.SerializerMethodField()
-    client = serializers.SerializerMethodField()
-    project_color = serializers.SerializerMethodField()
-    project_code = serializers.SerializerMethodField()
-    task_type = serializers.SerializerMethodField()
-    task = serializers.SerializerMethodField()
-    leave_document = serializers.SerializerMethodField()
-
-    class Meta:
-        model = TimeEntry
-        exclude = ['user']
-
-    def get_country(self, obj):
-        return obj.country.code if obj.country else None
-
-    def get_client(self, obj):
-        return obj.client.name if obj.client else None
-
-    def get_project_color(self, obj):
-        return obj.project_code.project.project_color if obj.project_code and obj.project_code.project else None
-
-    def get_project_code(self, obj):
-        return obj.project_code.code if obj.project_code else None
-
-    def get_task_type(self, obj):
-        return obj.task_type.name if obj.task_type else None
-
-    def get_task(self, obj):
-        return obj.task.name if obj.task else None
-
-    def get_leave_document(self, obj):
-        if not obj.leave_document:
-            return None
-
-        return {
-            'id': obj.leave_document.id,
-            'name': Path(obj.leave_document.file.name).name,
-            'url': obj.leave_document.file.url,
-        }
-
-
-class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.email')
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
@@ -117,7 +75,10 @@ class TimeEntryAdminReadSerializer(serializers.ModelSerializer):
 
         return {
             'id': obj.leave_document.id,
-            'name': Path(obj.leave_document.file.name).name,
+            'name': (
+                obj.leave_document.original_filename
+                or Path(obj.leave_document.file.name).name
+            ),
             'url': obj.leave_document.file.url,
         }
 
@@ -193,13 +154,27 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         end_date = validated_data.pop('end_date', None)
         single_date = request.query_params.get('single_date', 'false')
         leave_document = validated_data.pop('leave_document', None)
+        user = request.user
 
         leave_document_obj = None
 
         if leave_document:
+            ext = Path(leave_document.name).suffix
+
+            display_name = (
+                f'{user.first_name}_'
+                f'{user.last_name}_'
+                f"{validated_data['task'].name}_"
+                f'{start_date}_'
+                f'{end_date}_'
+                f'{uuid.uuid4().hex[:8]}'
+                f'{ext}'
+            )
+
             leave_document_obj = LeaveDocument.objects.create(
-                user=self.context['request'].user,
-                file=leave_document
+                user=user,
+                file=leave_document,
+                original_filename=display_name,
             )
 
         if start_date == end_date and single_date == 'true':
@@ -212,7 +187,7 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         years = list(range(start_date.year, end_date.year + 1))
 
         calendar_events = Calendar.objects.filter(
-            country=request.user.country
+            country=user.country
         ).filter(
             Q(is_recurring=True) |
             Q(is_recurring=False, year__in=years)

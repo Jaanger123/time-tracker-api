@@ -15,6 +15,7 @@ from django.db.models import F
 from django.http import HttpResponse
 
 from .utils import get_country, filter_report_by_params, filter_leaves_by_params
+from apps.calendars.pagination import TimeEntryPagination
 from .services.monitoring import get_monitoring_data
 from .services.dashboard import get_dashboard_data
 from .permissions import IsOwnerOrAdmin
@@ -82,6 +83,7 @@ class TimeEntryViewSet(ModelViewSet):
     )
     serializer_class = TimeEntryReadSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+    pagination_class = TimeEntryPagination
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:

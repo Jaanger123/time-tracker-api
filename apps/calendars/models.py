@@ -68,6 +68,11 @@ class LeaveDocument(models.Model):
     file = models.FileField(
         upload_to=leave_document_upload_path
     )
+    original_filename = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
     uploaded_at = models.DateTimeField(
         auto_now_add=True
     )
