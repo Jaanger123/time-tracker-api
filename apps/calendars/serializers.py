@@ -376,6 +376,9 @@ class LeaveReportSerializer(serializers.ModelSerializer):
 
         return {
             'id': obj.leave_document.id,
-            'name': Path(obj.leave_document.file.name).name,
+            'name': (
+                obj.leave_document.original_filename
+                or Path(obj.leave_document.file.name).name
+            ),
             'url': obj.leave_document.file.url,
         }
