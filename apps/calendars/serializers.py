@@ -7,6 +7,7 @@ from django.db.models import Q
 
 from rest_framework import serializers
 
+from .utils import safe_filename
 from .models import *
 
 
@@ -161,10 +162,10 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
         if leave_document:
             ext = Path(leave_document.name).suffix
 
-            display_name = (
-                f'{user.first_name}_'
-                f'{user.last_name}_'
-                f"{validated_data['task'].name}_"
+            generated_name = (
+                f'{safe_filename(user.first_name)}_'
+                f'{safe_filename(user.last_name)}_'
+                f"{safe_filename(validated_data['task'].name)}_"
                 f'{start_date}_'
                 f'{end_date}_'
                 f'{uuid.uuid4().hex[:8]}'
@@ -174,7 +175,7 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
             leave_document_obj = LeaveDocument.objects.create(
                 user=user,
                 file=leave_document,
-                original_filename=display_name,
+                original_filename=generated_name,
             )
 
         if start_date == end_date and single_date == 'true':

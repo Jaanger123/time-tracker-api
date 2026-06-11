@@ -17,13 +17,11 @@ from apps.clients.models import Client
 User = get_user_model()
 
 def leave_document_upload_path(instance, filename):
-    ext = Path(filename).suffix
-    stem = Path(filename).stem
 
     return (
         f'leave_documents/'
         f'user_{instance.user_id}/'
-        f'{stem}_{uuid.uuid4().hex[:8]}{ext}'
+        f'{instance.original_filename}'
     )
 
 
@@ -81,7 +79,7 @@ class LeaveDocument(models.Model):
         ordering = ['-uploaded_at']
 
     def __str__(self):
-        return self.file.name
+        return self.original_filename or self.file.name
 
 
 class TimeEntry(models.Model):

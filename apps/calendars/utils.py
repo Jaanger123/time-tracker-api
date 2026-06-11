@@ -1,3 +1,5 @@
+import re
+
 from collections import defaultdict
 
 from datetime import timedelta, datetime
@@ -18,6 +20,15 @@ class CompletionStatus:
     PARTIAL = 'partial'
     COMPLETED = 'completed'
 
+
+def safe_filename(value):
+    value = str(value).strip()
+
+    return re.sub(
+        r'[^a-zA-Z0-9_-]',
+        '_',
+        value
+    )
 
 def get_working_days_list(start_date, end_date, country, working_weekdays={0, 1, 2, 3, 4}):
     calendar_events = Calendar.objects.filter(
