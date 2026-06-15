@@ -1,9 +1,9 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
-from django.db.models import F, OuterRef, Subquery, Sum
+from django.db.models import F, OuterRef, Subquery
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.generics import GenericAPIView
@@ -18,11 +18,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from services.email_service import send_activation_email, send_reminder, send_message
+from services.email_service import send_activation_email, send_reminder, send_message, send_email
 from apps.calendars.utils import get_missing_days_for_user
 from apps.accounts.pagination import UserPagination
 from .permissions import IsAdminRole
 from utils import generate_excel
+from .utils import generate_verification_code
 from .filters import UserFilter
 from .serializers import *
 from .models import *
@@ -133,6 +134,94 @@ class LogoutView(GenericAPIView):
 		serializer.save()
 
 		return Response({'message': 'Successfully logged out'}, status.HTTP_200_OK)
+
+
+class ForgotPasswordAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.filter(
+            email=serializer.validated_data['email'].lower()
+        ).first()
+
+        if user:
+            code = generate_verification_code()
+
+            user.password_reset_code = code
+            user.password_reset_expires_at = (
+                timezone.now() + timedelta(minutes=15)
+            )
+            user.save()
+
+            send_email(
+                user.email,
+                'Password Reset',
+                f'Your password reset code is: {code}'
+            )
+
+        return Response({
+            'message':
+            'If an account exists, a reset code has been sent.'
+        })
+
+
+class ResetPasswordAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        user = get_object_or_404(
+            User,
+            email=serializer.validated_data['email'].lower(),
+        )
+
+        if (
+            user.password_reset_code !=
+            serializer.validated_data['code']
+        ):
+            return Response(
+                {
+                    'message':
+                    'Invalid reset code.'
+                },
+                status=400,
+            )
+
+        if (
+            not user.password_reset_expires_at
+            or timezone.now() >
+            user.password_reset_expires_at
+        ):
+            return Response(
+                {
+                    'message':
+                    'Reset code expired.'
+                },
+                status=400,
+            )
+
+        user.set_password(
+            serializer.validated_data['password']
+        )
+
+        user.password_reset_code = None
+        user.password_reset_expires_at = None
+
+        user.save()
+
+        return Response({
+            'message':
+            'Password changed successfully.'
+        })
 
 
 class UserStatusViewSet(ModelViewSet):

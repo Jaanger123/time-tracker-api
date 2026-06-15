@@ -141,6 +141,16 @@ class LogoutSerializer(serializers.Serializer):
 			raise serializers.ValidationError('Incorrect token')
 
 
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    password = serializers.CharField(write_only=True)
+
+
 class UserStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserStatus

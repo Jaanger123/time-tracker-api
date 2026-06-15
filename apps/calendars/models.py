@@ -1,9 +1,6 @@
-import uuid
-
-from pathlib import Path
-
 from datetime import date
 
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
@@ -84,7 +81,14 @@ class LeaveDocument(models.Model):
 
 class TimeEntry(models.Model):
     date = models.DateField(null=True, blank=True)
-    hours = models.IntegerField()
+    hours = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(24),
+        ]
+    )
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

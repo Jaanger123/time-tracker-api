@@ -89,7 +89,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
         blank=True,
     )
-
+    password_reset_code = models.CharField(max_length=6, null=True, blank=True)
+    password_reset_expires_at = models.DateTimeField(null=True, blank=True)
     status = models.ForeignKey(UserStatus, on_delete=models.PROTECT, null=True, blank=True, related_name='users')
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True)
