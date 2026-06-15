@@ -1,3 +1,7 @@
+import uuid
+
+from pathlib import Path
+
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -39,6 +43,11 @@ class LeaveDocumentSerializer(serializers.ModelSerializer):
 
 
 class TimeEntryReadSerializer(serializers.ModelSerializer):
+    hours = serializers.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        coerce_to_string=False,
+    )
     user = serializers.ReadOnlyField(source='user.email')
     country = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
@@ -343,6 +352,11 @@ class CalendarSerializer(serializers.ModelSerializer):
 
 
 class LeaveReportSerializer(serializers.ModelSerializer):
+    hours = serializers.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        coerce_to_string=False,
+    )
     user_email = serializers.CharField(source='user.email')
     user_country_code = serializers.CharField(source='user.country.code')
     user_department = serializers.CharField(source='user.department.name')

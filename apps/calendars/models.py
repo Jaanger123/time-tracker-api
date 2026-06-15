@@ -82,8 +82,8 @@ class LeaveDocument(models.Model):
 class TimeEntry(models.Model):
     date = models.DateField(null=True, blank=True)
     hours = models.DecimalField(
-        max_digits=4,
-        decimal_places=2,
+        max_digits=3,
+        decimal_places=1,
         validators=[
             MinValueValidator(0),
             MaxValueValidator(24),
