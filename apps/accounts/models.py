@@ -121,17 +121,12 @@ class UserStatusHistory(models.Model):
         on_delete=models.CASCADE,
         related_name='status_history'
     )
-
     status = models.ForeignKey(
         UserStatus,
         on_delete=models.PROTECT
     )
-
     started_at = models.DateField()
-
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name_plural = _('User status history')
@@ -150,3 +145,40 @@ class UserStatusHistory(models.Model):
 
     def __str__(self):
         return f'{self.user.email}: {self.status.name}. On: {self.started_at}'
+
+
+class UserGradeHistory(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='grade_history'
+    )
+    position = models.ForeignKey(
+        Position,
+        on_delete=models.PROTECT
+    )
+    grade = models.ForeignKey(
+        Grade,
+        on_delete=models.PROTECT
+    )
+    started_at = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = _('User grade history')
+        ordering = ['started_at']
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'user',
+                    'position',
+                    'grade',
+                    'started_at'
+                ],
+                name='unique_user_grade_date'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user.email}: {self.position.name} - {self.grade.name}. On: {self.started_at}'

@@ -89,7 +89,7 @@ class TimeEntryViewSet(ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return TimeEntryReadSerializer
 
-        return TimeEntryCreateSerializer
+        return TimeEntryWriteSerializer
 
     def get_queryset(self):
         start_date = self.request.query_params.get('start_date')
@@ -129,7 +129,7 @@ class TimeEntryViewSet(ModelViewSet):
             'hours',
             'project_department',
             'client_name',
-            'project_code',
+            'code',
             'project_service_line',
             'task_type_name',
             'task_name',
@@ -176,7 +176,14 @@ class TimeEntryViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def report(self, request):
-        queryset = self.queryset
+        queryset = TimeEntry.objects.all().select_related(
+            'user',
+            'country',
+            'client',
+            'project_code',
+            'task_type',
+            'task'
+        )
 
         queryset = filter_report_by_params(request, queryset)
 

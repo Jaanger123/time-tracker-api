@@ -6,9 +6,9 @@ from rest_framework import serializers
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from .services import create_user_grade_history, create_user_status_history
 from apps.clients.serializers import ClientSerializer
 from apps.clients.models import Client
-from .services import create_user_status_history
 from .models import *
 
 
@@ -167,6 +167,7 @@ class UserReadSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     position = serializers.SerializerMethodField()
     grade = serializers.SerializerMethodField()
+    grade_started_at = serializers.DateField(read_only=True)
     department = serializers.SerializerMethodField()
     department_role = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
@@ -185,6 +186,7 @@ class UserReadSerializer(serializers.ModelSerializer):
             'role',
             'position',
             'grade',
+            'grade_started_at',
             'department',
             'department_role',
             'country',
@@ -234,6 +236,10 @@ class UserCreateSerializer(serializers.ModelSerializer):
         queryset=Grade.objects.all(),
         required=True,
     )
+    grade_started_at = serializers.DateField(
+        write_only=True,
+        required=True
+    )
     department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(),
         required=True,
@@ -260,6 +266,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'role',
             'position',
             'grade',
+            'grade_started_at',
             'department',
             'department_role',
             'country',
@@ -267,16 +274,31 @@ class UserCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        position = attrs.get('position')
+        grade = attrs.get('grade')
+
         if attrs.get('email'):
             attrs['email'] = attrs['email'].lower()
+
+        if grade and position:
+            if grade.position_id != position.id:
+                raise serializers.ValidationError({
+                    'message':
+                    'Selected grade does not belong to selected position.'
+                })
 
         return attrs
 
     def create(self, validated_data):
-        started_at = validated_data.pop('status_started_at')
+        grade_started_at = validated_data.pop('grade_started_at')
+        status_started_at = validated_data.pop('status_started_at')
+        position = validated_data.pop('position')
+        grade = validated_data.pop('grade')
 
         user = User.objects.create(
             **validated_data,
+            position=position,
+            grade=grade,
             is_active=False
         )
 
@@ -287,18 +309,24 @@ class UserCreateSerializer(serializers.ModelSerializer):
         create_user_status_history(
             user=user,
             status=registered_status,
-            started_at=started_at
+            started_at=status_started_at
+        )
+
+        create_user_grade_history(
+            user=user,
+            position=position,
+            grade=grade,
+            started_at=grade_started_at
         )
 
         return user
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    status = serializers.PrimaryKeyRelatedField(
-        queryset=UserStatus.objects.all(),
+    status_started_at = serializers.DateField(
         required=False
     )
-    status_started_at = serializers.DateField(
+    grade_started_at = serializers.DateField(
         required=False
     )
 
@@ -312,6 +340,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'role',
             'position',
             'grade',
+            'grade_started_at',
             'department',
             'department_role',
             'country',
@@ -320,53 +349,78 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        status = attrs.get('status')
-        started_at = attrs.get('status_started_at')
+        position = attrs.get('position')
+        grade = attrs.get('grade')
 
-        if status and not started_at:
+        if attrs.get('status') and not attrs.get('status_started_at'):
             raise serializers.ValidationError({
                 'message':
-                    '\'status_started_at\' field is required when changing status.'
+                '\'status_started_at\' field is required when changing status.'
             })
 
-        if started_at and not status:
+        if (position and not grade) or (grade and not position):
             raise serializers.ValidationError({
                 'message':
-                    '\'status\' field is required when \'status_started_at\' is provided.'
+                'Please specify \'position\' and \'grade\' fields or neither.'
             })
+
+        if attrs.get('grade') and not attrs.get('grade_started_at'):
+            raise serializers.ValidationError({
+                'message':
+                '\'grade_started_at\' field is required when changing grade.'
+            })
+
+        if grade and position:
+            if grade.position_id != position.id:
+                raise serializers.ValidationError({
+                    'message':
+                    'Selected grade does not belong to selected position.'
+                })
 
         return attrs
 
     def update(self, instance, validated_data):
         status = validated_data.pop('status', None)
-        started_at = validated_data.pop('status_started_at', None)
+        status_started_at = validated_data.pop('status_started_at', None)
+        position = validated_data.pop('position', None)
+        grade = validated_data.pop('grade', None)
+        grade_started_at = validated_data.pop('grade_started_at', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
         instance.save()
 
-        if status:
-            latest_history = (
-                instance.status_history
-                .order_by('-started_at', '-id')
-                .first()
+        if status is not None:
+            create_user_status_history(
+                user=instance,
+                status=status,
+                started_at=status_started_at
             )
 
-            should_create_history = (
-                not latest_history
-                or latest_history.status_id != status.id
-                or latest_history.started_at != started_at
+        if position is not None and grade is not None:
+            create_user_grade_history(
+                user=instance,
+                position=position,
+                grade=grade,
+                started_at=grade_started_at,
             )
-
-            if should_create_history:
-                create_user_status_history(
-                    user=instance,
-                    status=status,
-                    started_at=started_at
-                )
 
         return instance
+
+
+class UserGradeHistorySerializer(serializers.ModelSerializer):
+    position = serializers.CharField(source='position.name')
+    grade = serializers.CharField(source='grade.name')
+
+    class Meta:
+        model = UserGradeHistory
+        fields = [
+            'id',
+            'position',
+            'grade',
+            'started_at',
+        ]
 
 
 class SendRemindersSerializer(serializers.Serializer):

@@ -1,10 +1,16 @@
-from django.utils.timezone import is_aware
-from django.http import HttpResponse
-
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
 import openpyxl
 
+from django.http import HttpResponse
+
+
+def is_admin(user):
+    return (
+        user.is_authenticated
+        and user.role
+        and user.role.name == 'admin'
+    )
 
 def normalize_value(value):
     if hasattr(value, 'tzinfo') and value.tzinfo is not None:

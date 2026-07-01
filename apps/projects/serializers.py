@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
+from common.utils import is_admin
 from .models import *
 
 
@@ -27,9 +28,22 @@ class ServiceLineSerializer(serializers.ModelSerializer):
 
 
 class TaskTypeSerializer(serializers.ModelSerializer):
+    tasks = serializers.SerializerMethodField()
+
     class Meta:
         model = TaskType
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'is_active', 'tasks']
+
+    def get_tasks(self, obj):
+        request = self.context.get('request')
+        user = request.user
+
+        tasks = Task.objects.filter(task_type=obj)
+
+        if not is_admin(user):
+            tasks = tasks.filter(is_active=True)
+
+        return TaskReadSerializer(tasks, many=True).data
 
 
 class TaskReadSerializer(serializers.ModelSerializer):
@@ -37,13 +51,13 @@ class TaskReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ['id', 'name', 'task_type']
+        fields = ['id', 'name', 'is_active', 'task_type']
 
     def get_task_type(self, obj):
         return obj.task_type.id if obj.task_type else None
 
 
-class TaskCreateSerializer(serializers.ModelSerializer):
+class TaskWriteSerializer(serializers.ModelSerializer):
     task_type = serializers.PrimaryKeyRelatedField(
         queryset=TaskType.objects.all(),
         required=True,
@@ -51,7 +65,11 @@ class TaskCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ['id', 'name', 'task_type']
+        fields = ['id', 'name', 'is_active', 'task_type']
+
+
+class TaskImportSerializer(serializers.Serializer):
+    file = serializers.FileField()
 
 
 class ProjectCodeReadSerializer(serializers.ModelSerializer):
@@ -126,7 +144,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_tasks(self, obj):
-        tasks = Task.objects.filter(task_type=obj.task_type)
+        tasks = Task.objects.filter(task_type=obj.task_type, is_active=True)
 
         return TaskReadSerializer(tasks, many=True).data
 

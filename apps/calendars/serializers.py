@@ -93,7 +93,7 @@ class TimeEntryReadSerializer(serializers.ModelSerializer):
         }
 
 
-class TimeEntryCreateSerializer(serializers.ModelSerializer):
+class TimeEntryWriteSerializer(serializers.ModelSerializer):
     weekends_included = serializers.BooleanField(write_only=True, default=False)
     holidays_included = serializers.BooleanField(write_only=True, default=False)
     start_date = serializers.DateField(required=False, write_only=True)
@@ -158,13 +158,14 @@ class TimeEntryCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context.get('request')
+        single_date = request.query_params.get('single_date', 'false')
+        user = request.user
+
         weekends_included = validated_data.pop('weekends_included', False)
         holidays_included = validated_data.pop('holidays_included', False)
         start_date = validated_data.pop('start_date', None)
         end_date = validated_data.pop('end_date', None)
-        single_date = request.query_params.get('single_date', 'false')
         leave_document = validated_data.pop('leave_document', None)
-        user = request.user
 
         leave_document_obj = None
 

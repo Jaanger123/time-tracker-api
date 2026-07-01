@@ -72,7 +72,8 @@ class ClientCreateSerializer(serializers.ModelSerializer):
     )
     country_of_ubo = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
-        required=True,
+        required=False,
+        allow_null=True
     )
     pie = serializers.PrimaryKeyRelatedField(
         queryset=Pie.objects.all(),

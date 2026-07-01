@@ -328,3 +328,37 @@ def filter_monitoring_by_params(request, data):
         new_data.append(obj)
 
     return new_data
+
+def create_licensee_time_entries(
+    user,
+    working_days_list,
+    task,
+    task_type,
+    daily_hours,
+):
+    existing_dates = set(
+        TimeEntry.objects.filter(
+            user=user,
+            date__in=working_days_list,
+        ).values_list('date', flat=True)
+    )
+
+    entries = []
+
+    for day in working_days_list:
+        if day in existing_dates:
+            continue
+
+        entries.append(
+            TimeEntry(
+                user=user,
+                country=user.country,
+                date=day,
+                hours=daily_hours,
+                task=task,
+                task_type=task_type,
+            )
+        )
+
+    if entries:
+        TimeEntry.objects.bulk_create(entries)

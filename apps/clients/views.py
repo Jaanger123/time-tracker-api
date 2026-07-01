@@ -8,8 +8,8 @@ from rest_framework import filters
 from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.clients.pagination import ClientPagination
+from common.utils import generate_excel
 from .filters import ClientFilter
-from utils import generate_excel
 from .serializers import *
 from .models import *
 

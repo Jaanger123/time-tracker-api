@@ -21,8 +21,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from services.email_service import send_activation_email, send_reminder, send_message, send_email
 from apps.calendars.utils import get_missing_days_for_user
 from apps.accounts.pagination import UserPagination
-from .permissions import IsAdminRole
-from utils import generate_excel
+from common.permissions import IsAdminRole
+from common.utils import generate_excel
 from .utils import generate_verification_code
 from .filters import UserFilter
 from .serializers import *
@@ -326,6 +326,13 @@ class UserViewSet(ModelViewSet):
             .values('started_at')[:1]
         )
 
+        latest_grade_date = (
+            UserGradeHistory.objects
+            .filter(user=OuterRef('pk'))
+            .order_by('-started_at', '-id')
+            .values('started_at')[:1]
+        )
+
         return queryset.annotate(
             position_name=F('position__name'),
             department_name=F('department__name'),
@@ -335,6 +342,7 @@ class UserViewSet(ModelViewSet):
             role_name=F('role__name'),
             status_name=F('status__name'),
             status_started_at=Subquery(latest_status_date),
+            grade_started_at=Subquery(latest_grade_date),
         )
 
     def get_serializer_class(self):
@@ -366,6 +374,20 @@ class UserViewSet(ModelViewSet):
     @action(detail=False, methods=['get'])
     def me(self, request):
         serializer = UserReadSerializer(request.user)
+
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='grade-history')
+    def grade_history(self, request, pk=None):
+        user = self.get_object()
+
+        queryset = (
+            user.grade_history
+            .select_related('position', 'grade')
+            .order_by('-started_at')
+        )
+
+        serializer = UserGradeHistorySerializer(queryset, many=True)
 
         return Response(serializer.data)
 

@@ -36,6 +36,8 @@ class ServiceLine(models.Model):
 
 class TaskType(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
+
 
     def __str__(self):
         return self.name
@@ -44,6 +46,8 @@ class TaskType(models.Model):
 class Task(models.Model):
     name = models.CharField(max_length=100)
     task_type = models.ForeignKey(TaskType, on_delete=models.SET_NULL, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
 
     def __str__(self):
         return self.name

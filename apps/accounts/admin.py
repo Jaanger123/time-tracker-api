@@ -58,6 +58,7 @@ class UserAdmin(BaseUserAdmin):
 admin.site.register(User, UserAdmin)
 admin.site.register(UserStatus)
 admin.site.register(UserStatusHistory)
+admin.site.register(UserGradeHistory)
 admin.site.register(Role)
 admin.site.register(Position)
 admin.site.register(Grade)
