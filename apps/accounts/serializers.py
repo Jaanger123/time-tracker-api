@@ -391,14 +391,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
         instance.save()
 
-        if status is not None:
+        if status is not None and status_started_at is not None:
             create_user_status_history(
                 user=instance,
                 status=status,
                 started_at=status_started_at
             )
 
-        if position is not None and grade is not None:
+        if position is not None and grade is not None and grade_started_at is not None:
             create_user_grade_history(
                 user=instance,
                 position=position,
