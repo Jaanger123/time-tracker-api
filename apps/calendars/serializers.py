@@ -398,3 +398,24 @@ class LeaveReportSerializer(serializers.ModelSerializer):
             ),
             'url': obj.leave_document.file.url,
         }
+
+class AttendanceReportSerializer(serializers.Serializer):
+    country_id = serializers.IntegerField()
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+
+    def validate(self, attrs):
+        start = attrs['start_date']
+        end = attrs['end_date']
+
+        if start > end:
+            raise serializers.ValidationError(
+                '\'start_date\' cannot be after \'end_date\'.'
+            )
+
+        if start.year != end.year or start.month != end.month:
+            raise serializers.ValidationError(
+                'Report must be generated for a single month.'
+            )
+
+        return attrs

@@ -14,8 +14,11 @@ from rest_framework import status
 from django.db.models import F
 from django.http import HttpResponse
 
-from .utils import get_country, filter_report_by_params, filter_leaves_by_params
 from apps.calendars.pagination import TimeEntryPagination
+from apps.reports.attendance_excel import export_attendance_excel
+from apps.reports.attendance_report import build_report
+
+from .utils import get_country, filter_report_by_params, filter_leaves_by_params
 from .services.monitoring import get_monitoring_data
 from .services.dashboard import get_dashboard_data
 from .permissions import IsOwnerOrAdmin
@@ -278,6 +281,34 @@ class TimeEntryViewSet(ModelViewSet):
         data = get_dashboard_data(user, year, month)
 
         return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def attendance(self, request):
+        serializer = AttendanceReportSerializer(
+            data=request.query_params
+        )
+        serializer.is_valid(raise_exception=True)
+
+        start_date = serializer.validated_data['start_date']
+        end_date = serializer.validated_data['end_date']
+
+        report_days = [
+            start_date + timedelta(days=i)
+            for i in range((end_date - start_date).days + 1)
+        ]
+
+        report = build_report(
+            country_id=serializer.validated_data['country_id'],
+            report_start=start_date,
+            report_end=end_date,
+        )
+
+        format_type = request.query_params.get('export', 'json')
+
+        if format_type == 'excel':
+            return export_attendance_excel(report, report_days)
+
+        return Response(report['report'])
 
 
 class CalendarViewSet(ModelViewSet):
