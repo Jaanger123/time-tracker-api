@@ -273,8 +273,8 @@ def build_calendar(
     country_id,
     start_date,
     end_date,
+    settings,
 ):
-    settings = CountrySettings.get_settings(country_id)
     working_days = set(settings.working_days)
 
     calendar_events = (
@@ -348,6 +348,7 @@ def build_user_row(
     calendar,
     entries_by_day,
     report_days,
+    settings,
 ):
     row = {
         'id': user.id,
@@ -368,6 +369,7 @@ def build_user_row(
             else ''
         ),
         'working_days': 0,
+        'working_hours': 0,
         'worked_days': 0,
         'worked_hours': 0,
         'weekends_holidays': 0,
@@ -396,6 +398,7 @@ def build_user_row(
             and not calendar[day]['is_holiday']
         ):
             row['working_days'] += 1
+            row['working_hours'] += settings.hours_per_day
 
         if cell['type'] in (
             CELL_PAID_LEAVE,
@@ -442,6 +445,7 @@ def build_report(
     report_start,
     report_end,
 ):
+    settings = CountrySettings.get_settings(country_id)
     report_days = []
     current_day = report_start
 
@@ -453,6 +457,7 @@ def build_report(
         country_id,
         report_start,
         report_end,
+        settings,
     )
 
     entries_by_user = get_entries_by_user(
@@ -480,6 +485,7 @@ def build_report(
                 calendar=calendar,
                 entries_by_day=entries_by_user.get(user.id, {}),
                 report_days=report_days,
+                settings=settings
             )
         )
 

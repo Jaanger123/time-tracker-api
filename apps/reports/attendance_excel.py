@@ -37,6 +37,7 @@ def get_headers(report_days):
         *[str(day.day) for day in report_days],
 
         'working_days',
+        'working_hours',
         'worked_days',
         'worked_hours',
         'weekends_holidays',
