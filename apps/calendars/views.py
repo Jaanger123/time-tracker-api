@@ -207,6 +207,7 @@ class TimeEntryViewSet(ModelViewSet):
                 status_name=F('user__status__name')
             )
             .values(
+                'id',
                 'date',
                 'user_email',
                 'user_country_code',
@@ -224,7 +225,7 @@ class TimeEntryViewSet(ModelViewSet):
                 'description',
                 'status_name',
             )
-            .order_by('user_email', 'date')
+            .order_by('user_email', 'date', 'id')
         )
 
         format_type = request.query_params.get('export', 'json')
@@ -241,7 +242,7 @@ class TimeEntryViewSet(ModelViewSet):
         queryset = (
             self.queryset
             .filter(task_type__name='Leave')
-            .order_by('user__email', 'date')
+            .order_by('user__email', 'date', 'id')
         )
 
         queryset = filter_leaves_by_params(request, queryset)
