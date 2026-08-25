@@ -4,12 +4,20 @@ import openpyxl
 
 from django.http import HttpResponse
 
+from apps.accounts.models import UserStatus
+
 
 def is_admin(user):
     return (
         user.is_authenticated
         and user.role
         and user.role.name == 'admin'
+    )
+
+def is_fired(user):
+    return (
+        user.status is not None
+        and user.status.name == UserStatus.FIRED
     )
 
 def normalize_value(value):

@@ -52,7 +52,7 @@ def create_initial_code(project):
                 project=project, 
                 year=str(project.agreement_date.year)
             )
-            queryset = ProjectCode.objects.filter(project=project)
+            queryset = ProjectCode.objects.filter(code__contains=base_code)
             last_code_number = 0
 
             for obj in queryset:

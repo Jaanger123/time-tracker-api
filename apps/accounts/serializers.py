@@ -1,4 +1,4 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -9,6 +9,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .services import create_user_grade_history, create_user_status_history
 from apps.clients.serializers import ClientSerializer
 from apps.clients.models import Client
+from common.utils import is_fired
 from .models import *
 
 
@@ -120,10 +121,33 @@ class ActivateUserSerializer(serializers.Serializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, data):
-        if data.get('email'):
-            data['email'] = data['email'].lower()
+        email = data.get('email', '').lower()
+        password = data.get('password')
 
-        return super().validate(data)
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email,
+            password=password,
+        )
+
+        if user is None:
+            raise serializers.ValidationError({
+                    'message':
+                    'No active account found with the given credentials.'
+                })
+
+        if is_fired(user):
+            raise serializers.ValidationError({
+                'message':
+                'Your account has been deactivated.'
+            })
+
+        refresh = self.get_token(user)
+
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
 
 
 class LogoutSerializer(serializers.Serializer):

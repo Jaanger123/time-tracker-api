@@ -1,5 +1,7 @@
 from django.db import transaction
 
+from rest_framework.exceptions import ValidationError
+
 from .models import UserStatusHistory, UserGradeHistory
 
 
@@ -9,28 +11,35 @@ def create_user_status_history(
     status,
     started_at
 ):
-    latest = (
-        UserStatusHistory.objects
-        .filter(user=user)
-        .order_by('-started_at', '-id')
-        .first()
-    )
+    duplicate_exists = UserStatusHistory.objects.filter(
+        user=user,
+        status=status,
+        started_at=started_at,
+    ).exists()
 
-    if (
-        latest
-        and latest.status_id == status.id
-        and latest.started_at == started_at
-    ):
-        return latest
+    if duplicate_exists:
+        raise ValidationError({
+            'message': 
+                'This user already has this status with the same start date.'
+        })
 
     history = UserStatusHistory.objects.create(
         user=user,
         status=status,
-        started_at=started_at
+        started_at=started_at,
     )
 
-    user.status = status
-    user.save(update_fields=['status'])
+    latest = (
+        user.status_history
+        .select_related('status')
+        .order_by('-started_at', '-id')
+        .first()
+    )
+
+    print(latest)
+    if latest and user.status_id != latest.status_id:
+        user.status = latest.status
+        user.save(update_fields=['status'])
 
     return history
 
