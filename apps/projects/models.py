@@ -1,5 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.db import models
 
 from apps.accounts.models import Country, Department
@@ -18,6 +19,8 @@ class ServiceType(models.Model):
 
 
 class ProjectStatus(models.Model):
+    DELIVERED = 'Delivered'
+
     name = models.CharField(max_length=100, unique=True)
 
     class Meta:
@@ -68,7 +71,43 @@ class Project(models.Model):
     service_line = models.ForeignKey(ServiceLine, on_delete=models.SET_NULL, null=True, blank=True)
     task_type = models.ForeignKey(TaskType, on_delete=models.SET_NULL, null=True, blank=True)
     service_type = models.ForeignKey(ServiceType, on_delete=models.SET_NULL, null=True, blank=True)
+    closed_date = models.DateField(null=True, blank=True, editable=False)
     agreement_date = models.DateField()
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            old_project = (
+                Project.objects
+                .select_related('status')
+                .filter(pk=self.pk)
+                .first()
+            )
+
+            if old_project:
+                old_status = old_project.status
+                new_status = self.status
+
+                if (
+                    old_status.name != ProjectStatus.DELIVERED
+                    and new_status.name == ProjectStatus.DELIVERED
+                ):
+                    self.closed_date = timezone.localdate()
+
+                elif (
+                    old_status.name == ProjectStatus.DELIVERED
+                    and new_status.name != ProjectStatus.DELIVERED
+                ):
+                    self.closed_date = None
+
+        else:
+            if (
+                self.status
+                and self.status.name == ProjectStatus.DELIVERED
+            ):
+                self.closed_date = timezone.localdate()
+
+        super().save(*args, **kwargs)
+
 
     def get_last_project_code(self):
         project_code = ProjectCode.objects.filter(project=self.id).order_by('-created_at').first()

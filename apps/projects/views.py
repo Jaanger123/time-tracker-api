@@ -169,6 +169,7 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
             'task_type_name',
             'service_type_name',
             'agreement_date',
+            'closed_date',
         ]
 
         headers = [
@@ -187,6 +188,7 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
             'Task Type',
             'Service Type',
             'Agreement Date',
+            'Closed Date',
         ]
 
         return generate_excel(queryset, 'Projects', columns, headers)

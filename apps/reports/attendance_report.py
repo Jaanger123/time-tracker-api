@@ -460,6 +460,8 @@ def build_report(
         settings,
     )
 
+    print(calendar)
+
     entries_by_user = get_entries_by_user(
         country_id,
         report_start,

@@ -97,6 +97,9 @@ class ProjectReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = '__all__'
+        read_only_fields = [
+            'closed_date',
+        ]
 
     def get_status(self, obj):
         return obj.status.name if obj.status else None
@@ -142,6 +145,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = '__all__'
+        read_only_fields = [
+            'closed_date',
+        ]
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(task_type=obj.task_type, is_active=True)
@@ -191,3 +197,6 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = '__all__'
+        read_only_fields = [
+            'closed_date',
+        ]

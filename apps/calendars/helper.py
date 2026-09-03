@@ -1,0 +1,33 @@
+REPORT_COLUMNS = [
+    'date',
+    'user_email',
+    'country_code',
+    'user_department',
+    'position',
+    'detailed_grade',
+    'hours',
+    'project_department',
+    'client_name',
+    'code',
+    'project_service_line',
+    'task_type_name',
+    'task_name',
+    'description',
+]
+
+REPORT_HEADERS = [
+    'Date',
+    'User Email',
+    'Country',
+    'User Department',
+    'Position',
+    'Grade',
+    'Hours',
+    'Project Department',
+    'Client',
+    'Project Code',
+    'Service Line',
+    'Task Type',
+    'Task',
+    'Description',
+]

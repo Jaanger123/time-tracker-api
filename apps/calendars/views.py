@@ -1,4 +1,5 @@
 from datetime import datetime
+from email import header
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
@@ -24,6 +25,7 @@ from .services.dashboard import get_dashboard_data
 from .permissions import IsOwnerOrAdmin
 from .serializers import *
 from .models import *
+from .helper import *
 
 
 class CountrySettingsView(APIView):
@@ -117,44 +119,10 @@ class TimeEntryViewSet(ModelViewSet):
 
         return super().paginate_queryset(queryset)
 
-    def _generate_excel(self, queryset):
+    def _generate_excel(self, queryset, columns, headers, title, filename):
         workbook = openpyxl.Workbook()
         sheet = workbook.active
-        sheet.title = 'Timesheet Report'
-
-        columns = [
-            'date',
-            'user_email',
-            'country_code',
-            'user_department',
-            'position',
-            'detailed_grade',
-            'hours',
-            'project_department',
-            'client_name',
-            'code',
-            'project_service_line',
-            'task_type_name',
-            'task_name',
-            'description',
-        ]
-
-        headers = [
-            'Date',
-            'User Email',
-            'Country',
-            'User Department',
-            'Position',
-            'Grade',
-            'Hours',
-            'Project Department',
-            'Client',
-            'Project Code',
-            'Service Line',
-            'Task Type',
-            'Task',
-            'Description',
-        ]
+        sheet.title = title
 
         sheet.append(headers)
 
@@ -171,7 +139,7 @@ class TimeEntryViewSet(ModelViewSet):
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        response['Content-Disposition'] = 'attachment; filename=timesheet_report.xlsx'
+        response['Content-Disposition'] = f'attachment; filename={filename}.xlsx'
 
         workbook.save(response)
 
@@ -231,7 +199,13 @@ class TimeEntryViewSet(ModelViewSet):
         format_type = request.query_params.get('export', 'json')
 
         if format_type == 'excel':
-            return self._generate_excel(queryset)
+            return self._generate_excel(
+                queryset=queryset, 
+                columns=REPORT_COLUMNS, 
+                headers=REPORT_HEADERS, 
+                title='Timesheet Report', 
+                filename='timesheet_report'
+            )
 
         page = self.paginate_queryset(queryset)
 
