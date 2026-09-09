@@ -1,22 +1,21 @@
-from datetime import timedelta
-
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from .project_hours_report import build_project_hours_report
 from .project_hours_excel import export_project_hours_excel
 from .serializers import ProjectHoursReportSerializer
+from .pagination import ReportPagination
 
 
 class ReportViewSet(GenericViewSet):
     permission_classes = [IsAuthenticated]
+    pagination_class = ReportPagination
 
     @action(
         detail=False,
         methods=['get'],
-        url_path='project_hours',
+        url_path='project-hours',
     )
     def project_hours(self, request):
         serializer = ProjectHoursReportSerializer(
@@ -44,4 +43,6 @@ class ReportViewSet(GenericViewSet):
                 end_date=data['end_date'],
             )
 
-        return Response(report)
+        page = self.paginate_queryset(report)
+
+        return self.get_paginated_response(page)

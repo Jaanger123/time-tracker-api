@@ -283,7 +283,9 @@ class TimeEntryViewSet(ModelViewSet):
         if format_type == 'excel':
             return export_attendance_excel(report, report_days)
 
-        return Response(report['report'])
+        page = self.paginate_queryset(report['report'])
+
+        return self.get_paginated_response(page)
 
 
 class CalendarViewSet(ModelViewSet):
