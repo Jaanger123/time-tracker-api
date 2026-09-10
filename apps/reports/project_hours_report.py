@@ -6,7 +6,6 @@ from apps.calendars.models import TimeEntry
 
 def load_project_hours(
     *,
-    country_id,
     start_date,
     end_date,
 ):
@@ -15,12 +14,12 @@ def load_project_hours(
     entries = (
         TimeEntry.objects
         .filter(
-            country_id=country_id,
             date__range=(start_date, end_date),
             project_code__isnull=False,
         )
         .select_related(
             'user',
+            'user__country',
             'user__department',
             'user__position',
             'user__grade',
@@ -28,6 +27,7 @@ def load_project_hours(
             'project_code__project',
             'project_code__project__client',
             'project_code__project__department',
+            'project_code__project__country',
         )
         .order_by(
             'user__email',
@@ -71,6 +71,11 @@ def build_project_row(
     row = {
         'user_id': user.id,
         'full_name': f'{user.last_name} {user.first_name}',
+        'user_country_code': (
+            user.country.code
+            if user.country
+            else ''
+        ),
         'department': (
             user.department.name
             if user.department
@@ -87,6 +92,11 @@ def build_project_row(
             else ''
         ),
         'project_id': project.id,
+        'project_country_code': (
+            project.country.code
+            if project.country
+            else ''
+        ),
         'project_code': project_code.code,
     }
 
@@ -102,7 +112,6 @@ def build_project_row(
 
 def build_project_hours_report(
     *,
-    country_id,
     start_date,
     end_date,
 ):
@@ -112,7 +121,6 @@ def build_project_hours_report(
     ]
 
     grouped = load_project_hours(
-        country_id=country_id,
         start_date=start_date,
         end_date=end_date,
     )

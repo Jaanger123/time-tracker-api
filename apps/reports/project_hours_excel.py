@@ -42,10 +42,12 @@ def get_headers(start_date, end_date):
     return [
         'user_id',
         'full_name',
+        'user_country_code',
         'department',
         'position',
         'grade',
         'project_id',
+        'project_country_code',
         'project_code',
 
         *[str(day) for day in days],

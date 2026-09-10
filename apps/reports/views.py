@@ -26,7 +26,6 @@ class ReportViewSet(GenericViewSet):
         data = serializer.validated_data
 
         report = build_project_hours_report(
-            country_id=data['country_id'],
             start_date=data['start_date'],
             end_date=data['end_date'],
         )

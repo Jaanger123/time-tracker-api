@@ -2,7 +2,6 @@ from rest_framework import serializers
 
 
 class ProjectHoursReportSerializer(serializers.Serializer):
-    country_id = serializers.IntegerField()
     start_date = serializers.DateField()
     end_date = serializers.DateField()
 
