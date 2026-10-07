@@ -25,7 +25,7 @@ def load_project_hours(
             'user__department',
             'user__position',
             'user__grade',
-            'task__name',
+            'task',
             'project_code',
             'project_code__project',
             'project_code__project__client',
