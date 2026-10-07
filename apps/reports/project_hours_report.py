@@ -17,7 +17,8 @@ def load_project_hours(
     entries = (
         TimeEntry.objects
         .filter(
-            Q(project_code__isnull=False) | Q(task_type__name=TaskType.INTERNAL),
+            Q(project_code__isnull=False)
+            | Q(task_type__name=TaskType.INTERNAL),
             date__range=(start_date, end_date),
         )
         .select_related(
@@ -43,20 +44,28 @@ def load_project_hours(
 
     for entry in entries:
         project_code = entry.project_code
-        project = project_code.project
+        project = project_code.project if project_code else None
         task = entry.task
 
-        key = (
-            entry.user_id,
-            project_code.id,
-        )
+        if project_code:
+            key = (
+                entry.user_id,
+                'project',
+                project_code.id,
+            )
+        else:
+            key = (
+                entry.user_id,
+                'internal',
+                entry.task_id,
+            )
 
         if key not in grouped:
             grouped[key] = {
                 'user': entry.user,
                 'project': project,
                 'project_code': project_code,
-                'task': task,
+                'task': task if not project_code else None,
                 'hours_by_day': defaultdict(float),
             }
 
@@ -98,14 +107,26 @@ def build_project_row(
             if user.grade
             else ''
         ),
-        'project_id': project.id,
+        'project_id': (
+            project.id
+            if project
+            else None
+        ),
         'project_country_code': (
             project.country.code
-            if project.country
+            if project and project.country
             else ''
         ),
-        'project_code': project_code.code,
-        'task_name': task.name
+        'project_code': (
+            project_code.code
+            if project_code
+            else ''
+        ),
+        'task_name': (
+            task.name
+            if task
+            else ''
+        ),
     }
 
     for day in report_days:
