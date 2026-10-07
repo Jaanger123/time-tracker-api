@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 from apps.calendars.models import TimeEntry
+from apps.projects.models import TaskType
 
 
 def load_project_hours(
@@ -16,6 +17,7 @@ def load_project_hours(
         .filter(
             date__range=(start_date, end_date),
             project_code__isnull=False,
+            task_type__name=TaskType.INTERNAL,
         )
         .select_related(
             'user',
@@ -23,6 +25,7 @@ def load_project_hours(
             'user__department',
             'user__position',
             'user__grade',
+            'task__name',
             'project_code',
             'project_code__project',
             'project_code__project__client',
@@ -40,6 +43,7 @@ def load_project_hours(
     for entry in entries:
         project_code = entry.project_code
         project = project_code.project
+        task = entry.task
 
         key = (
             entry.user_id,
@@ -51,6 +55,7 @@ def load_project_hours(
                 'user': entry.user,
                 'project': project,
                 'project_code': project_code,
+                'task': task,
                 'hours_by_day': defaultdict(float),
             }
 
@@ -63,6 +68,7 @@ def build_project_row(
     user,
     project,
     project_code,
+    task,
     hours_by_day,
     report_days,
 ):
@@ -98,6 +104,7 @@ def build_project_row(
             else ''
         ),
         'project_code': project_code.code,
+        'task_name': task.name
     }
 
     for day in report_days:
@@ -133,6 +140,7 @@ def build_project_hours_report(
                 user=data['user'],
                 project=data['project'],
                 project_code=data['project_code'],
+                task=data['task'],
                 hours_by_day=data['hours_by_day'],
                 report_days=report_days,
             )

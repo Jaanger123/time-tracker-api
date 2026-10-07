@@ -81,7 +81,7 @@ def send_missing_time_entry_reminders():
 def generate_licensee_timesheets():
     today = timezone.localdate()
 
-    task_type = TaskType.objects.filter(name='Internal', is_active=True).first()
+    task_type = TaskType.objects.filter(name=TaskType.INTERNAL, is_active=True).first()
     task = Task.objects.filter(name='Licensee', is_active=True).first()
 
     if not task or not task_type:

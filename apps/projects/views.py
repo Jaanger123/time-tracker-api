@@ -121,14 +121,14 @@ class TaskViewSet(ModelViewSet, AdminWritePermissionMixin):
 
     @action(detail=False, methods=['get'])
     def internal(self, request):
-        tasks = self.get_queryset().filter(task_type__name='Internal')
+        tasks = self.get_queryset().filter(task_type__name=TaskType.INTERNAL)
         serializer = TaskReadSerializer(tasks, many=True)
 
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def leave(self, request):
-        tasks = self.get_queryset().filter(task_type__name='Leave')
+        tasks = self.get_queryset().filter(task_type__name=TaskType.LEAVE)
         serializer = TaskReadSerializer(tasks, many=True)
 
         return Response(serializer.data)

@@ -49,6 +49,7 @@ def get_headers(start_date, end_date):
         'project_id',
         'project_country_code',
         'project_code',
+        'task_name',
 
         *[str(day) for day in days],
 

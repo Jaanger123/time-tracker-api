@@ -38,6 +38,15 @@ class ServiceLine(models.Model):
 
 
 class TaskType(models.Model):
+    AOS = 'AOS'
+    FAS = 'FAS'
+    CONS = 'CONS'
+    AUDIT = 'Audit'
+    TAX = 'Tax'
+    INTERNAL = 'Internal'
+    LEAVE = 'Leave'
+    LEGAL = 'LEGAL'
+
     name = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
 

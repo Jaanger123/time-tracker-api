@@ -215,7 +215,7 @@ class TimeEntryViewSet(ModelViewSet):
     def leaves(self, request):
         queryset = (
             self.queryset
-            .filter(task_type__name='Leave')
+            .filter(task_type__name=TaskType.LEAVE)
             .order_by('user__email', 'date', 'id')
         )
 
