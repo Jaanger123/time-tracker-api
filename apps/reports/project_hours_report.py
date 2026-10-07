@@ -1,6 +1,8 @@
 from collections import defaultdict
 from datetime import timedelta
 
+from django.db.models import Q
+
 from apps.calendars.models import TimeEntry
 from apps.projects.models import TaskType
 
@@ -15,9 +17,8 @@ def load_project_hours(
     entries = (
         TimeEntry.objects
         .filter(
+            Q(project_code__isnull=False) | Q(task_type__name=TaskType.INTERNAL),
             date__range=(start_date, end_date),
-            project_code__isnull=False,
-            task_type__name=TaskType.INTERNAL,
         )
         .select_related(
             'user',
