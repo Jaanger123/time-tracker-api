@@ -2,7 +2,7 @@ from calendar import monthrange
 
 from datetime import date
 
-from django.db.models import Sum
+from django.db.models import Sum, Q
 
 from apps.calendars.models import CountrySettings, TimeEntry
 from apps.calendars.utils import get_working_days_list
@@ -22,11 +22,21 @@ def get_dashboard_data(user, year, month):
         date__range=(start_date, end_date)
     )
 
-    total_hours = (
-        queryset.aggregate(
-            total=Sum('hours')
-        )['total'] or 0
+    totals = queryset.aggregate(
+            total_hours=Sum('hours'),
+        approved_hours=Sum(
+            'hours',
+            filter=Q(is_approved=True)
+        ),
+        not_approved_hours=Sum(
+            'hours',
+            filter=Q(is_approved=False)
+        ),
     )
+
+    total_hours = totals['total_hours'] or 0
+    approved_hours = totals['approved_hours'] or 0
+    not_approved_hours = totals['not_approved_hours'] or 0
 
     total_records = queryset.count()
 
@@ -48,6 +58,8 @@ def get_dashboard_data(user, year, month):
     )
 
     completion_rate = 0
+    approved_completion_rate = 0
+    not_approved_completion_rate = 0
 
     if expected_hours > 0:
         completion_rate = round(
@@ -55,10 +67,26 @@ def get_dashboard_data(user, year, month):
             2
         )
 
+        approved_completion_rate = round(
+            (approved_hours / expected_hours) * 100,
+            2
+        )
+
+        not_approved_completion_rate = round(
+            (not_approved_hours / expected_hours) * 100,
+            2
+        )
+
     return {
         'total_hours': total_hours,
+        'approved_hours': approved_hours,
+        'not_approved_hours': not_approved_hours,
         'expected_hours': expected_hours,
+
         'completion_rate': completion_rate,
+        'approved_completion_rate': approved_completion_rate,
+        'not_approved_completion_rate': not_approved_completion_rate,
+
         'worked_days': worked_days,
         'total_working_days': total_working_days,
         'total_records': total_records,

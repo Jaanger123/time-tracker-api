@@ -145,6 +145,7 @@ def get_entries_by_user(
         .filter(
             user__country_id=country_id,
             date__range=(start_date, end_date),
+            is_approved=True,
         )
         .select_related(
             'task',

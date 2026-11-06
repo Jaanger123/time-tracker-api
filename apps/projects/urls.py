@@ -8,6 +8,7 @@ from .views import *
 router = DefaultRouter()
 router.register('projects', ProjectViewSet)
 router.register('statuses', ProjectStatusViewSet)
+router.register('status-history', ProjectStatusHistoryViewSet)
 router.register('service-lines', ServiceLineViewSet)
 router.register('task-types', TaskTypeViewSet)
 router.register('tasks', TaskViewSet)

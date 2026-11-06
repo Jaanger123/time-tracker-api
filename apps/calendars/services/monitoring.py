@@ -23,11 +23,17 @@ def get_monitoring_data(request, country_id, start_date, end_date):
         .annotate(
             total_hours=Sum(
                 'time_entries__hours',
-                filter=Q(time_entries__date__range=(start_date, end_date))
+                filter=Q(
+                    time_entries__date__range=(start_date, end_date),
+                    time_entries__is_approved=True,
+                )
             ),
             last_updated=Max(
                 'time_entries__updated_at',
-                filter=Q(time_entries__date__range=(start_date, end_date))
+                filter=Q(
+                    time_entries__date__range=(start_date, end_date),
+                    time_entries__is_approved=True,
+                )
             )
         )
         .values(

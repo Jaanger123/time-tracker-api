@@ -33,6 +33,13 @@ class ProjectStatusViewSet(ModelViewSet, AdminWritePermissionMixin):
     pagination_class = None
 
 
+class ProjectStatusHistoryViewSet(ModelViewSet):
+    queryset = ProjectStatusHistory.objects.all()
+    serializer_class = ProjectStatusHistorySerializer
+    permission_classes = [IsAdminRole]
+    pagination_class = None
+
+
 class ServiceLineViewSet(ModelViewSet, AdminWritePermissionMixin):
     queryset = ServiceLine.objects.all()
     serializer_class = ServiceLineSerializer
@@ -213,12 +220,22 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
 
             return ProjectReadSerializer
 
+        if self.action in ['update', 'partial_update']:
+            return ProjectUpdateSerializer
+
         return ProjectCreateSerializer
 
     def get_queryset(self):
         latest_code_subquery = ProjectCode.objects.filter(
             project=OuterRef('pk')
         ).order_by('-created_at').values('code')[:1]
+
+        latest_status_date = (
+            ProjectStatusHistory.objects
+            .filter(project=OuterRef('pk'))
+            .order_by('-started_at', '-id')
+            .values('started_at')[:1]
+        )
 
         return Project.objects.annotate(
             client_name=F('client__name'),
@@ -229,5 +246,6 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
             service_line_name=F('service_line__name'),
             task_type_name=F('task_type__name'),
             service_type_name=F('service_type__name'),
-            code=Subquery(latest_code_subquery)
+            code=Subquery(latest_code_subquery),
+            status_started_at=Subquery(latest_status_date)
         )

@@ -20,6 +20,7 @@ def load_project_hours(
             Q(project_code__isnull=False)
             | Q(task_type__name=TaskType.INTERNAL),
             date__range=(start_date, end_date),
+            is_approved=True,
         )
         .select_related(
             'user',

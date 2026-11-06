@@ -79,7 +79,8 @@ def get_entries_by_user(country_id, start_date, end_date):
         TimeEntry.objects
         .filter(
             user__country=country_id,
-            date__range=(start_date, end_date)
+            date__range=(start_date, end_date),
+            is_approved=True,
         )
         .values('user_id', 'date')
         .annotate(total_hours=Sum('hours'))
@@ -122,7 +123,8 @@ def get_missing_days_for_user(
         TimeEntry.objects
         .filter(
             user=user,
-            date__range=(start_date, end_date)
+            date__range=(start_date, end_date),
+            is_approved=True,
         )
         .values('date')
         .annotate(total_hours=Sum('hours'))
@@ -278,6 +280,22 @@ def filter_leaves_by_params(request, queryset):
 
     return queryset
 
+def filter_manager_approval_by_params(request, queryset):
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+    user_email = request.query_params.get('user_email')
+
+    if start_date:
+        queryset = queryset.filter(date__gte=start_date)
+
+    if end_date:
+        queryset = queryset.filter(date__lte=end_date)
+
+    if user_email:
+        queryset = queryset.filter(user__email__icontains=user_email)
+
+    return queryset
+
 def parse_date(date_str):
     try:
         dt = datetime.strptime(date_str, '%Y-%m-%d')
@@ -357,6 +375,7 @@ def create_licensee_time_entries(
                 hours=daily_hours,
                 task=task,
                 task_type=task_type,
+                is_approved=True,
             )
         )
 

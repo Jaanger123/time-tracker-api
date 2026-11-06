@@ -45,7 +45,7 @@ class TaskType(models.Model):
     TAX = 'Tax'
     INTERNAL = 'Internal'
     LEAVE = 'Leave'
-    LEGAL = 'LEGAL'
+    LEGAL = 'Legal'
 
     name = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
@@ -125,6 +125,38 @@ class Project(models.Model):
 
     def __str__(self):
         return self.description
+
+
+class ProjectStatusHistory(models.Model):
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='status_history'
+    )
+    status = models.ForeignKey(
+        ProjectStatus,
+        on_delete=models.PROTECT
+    )
+    started_at = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = _('Project status history')
+        ordering = ['started_at']
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'project',
+                    'status',
+                    'started_at'
+                ],
+                name='unique_project_status_date'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.project.description}; ID - {self.project.id}; Status - {self.status.name}; Started at - {self.started_at}.'
 
 
 class ProjectCode(models.Model):

@@ -105,6 +105,7 @@ class TimeEntry(models.Model):
         blank=True,
         related_name='time_entries'
     )
+    is_approved = models.BooleanField(default=False)
 
     class Meta:
         verbose_name_plural = _('Time entries')

@@ -167,6 +167,13 @@ class TimeEntryWriteSerializer(serializers.ModelSerializer):
         end_date = validated_data.pop('end_date', None)
         leave_document = validated_data.pop('leave_document', None)
 
+        task_type = validated_data.get('task_type')
+
+        validated_data['is_approved'] = task_type.name in {
+            TaskType.INTERNAL,
+            TaskType.LEAVE,
+        }
+
         leave_document_obj = None
 
         if leave_document:
@@ -381,6 +388,7 @@ class LeaveReportSerializer(serializers.ModelSerializer):
             'hours',
             'description',
             'leave_document',
+            'is_approved',
         ]
 
     def get_country(self, obj):

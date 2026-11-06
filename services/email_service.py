@@ -14,34 +14,53 @@ User = get_user_model()
 def send_email(to_email, subject, body):
     access_token = get_access_token()
 
-    url = f"https://graph.microsoft.com/v1.0/users/{config('MS_SENDER_EMAIL')}/sendMail"
-
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
     }
 
-    data = {
-        'message': {
-            'subject': subject,
-            'body': {
-                'contentType': 'Text',
-                'content': body,
-            },
-            'toRecipients': [
-                {
-                    'emailAddress': {
-                        'address': to_email
-                    }
-                }
-            ],
-        }
-    }
+    sender = config('MS_SENDER_EMAIL')
 
-    response = requests.post(url, headers=headers, json=data)
+    check_url = f"https://graph.microsoft.com/v1.0/users/{sender}/mailboxSettings"
 
-    if response.status_code != 202:
-        raise Exception(response.text)
+    check_response = requests.get(
+        check_url,
+        headers=headers,
+    )
+
+    print("MAILBOX:", sender)
+    print("STATUS:", check_response.status_code)
+    print("RESPONSE:", check_response.text)
+    # access_token = get_access_token()
+
+    # url = f"https://graph.microsoft.com/v1.0/users/{config('MS_SENDER_EMAIL')}/sendMail"
+
+    # headers = {
+    #     'Authorization': f'Bearer {access_token}',
+    #     'Content-Type': 'application/json',
+    # }
+
+    # data = {
+    #     'message': {
+    #         'subject': subject,
+    #         'body': {
+    #             'contentType': 'Text',
+    #             'content': body,
+    #         },
+    #         'toRecipients': [
+    #             {
+    #                 'emailAddress': {
+    #                     'address': to_email
+    #                 }
+    #             }
+    #         ],
+    #     }
+    # }
+
+    # response = requests.post(url, headers=headers, json=data)
+
+    # if response.status_code != 202:
+    #     raise Exception(response.text)
 
 def send_activation_email(user):
     activation_link = 'http://165.22.29.172/login'
@@ -83,7 +102,7 @@ def send_reminder(email, first_name, last_name, missing_days, start_date, end_da
             f"{day['date']} - missing {day['missing_hours']}h"
         )
 
-    subject = 'Final Notice: Timesheet Submission Required'
+    subject = '{NO REPLY} Final Notice: Timesheet Submission Required'
 
     message = f'''
 Dear {last_name} {first_name},

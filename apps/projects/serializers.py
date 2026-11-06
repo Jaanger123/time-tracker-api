@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
+from apps.projects.services.project_status_service import create_project_status_history
 from common.utils import is_admin
 from .models import *
 
@@ -19,6 +20,12 @@ class ProjectStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectStatus
         fields = ['id', 'name']
+
+
+class ProjectStatusHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectStatusHistory
+        fields = '__all__'
 
 
 class ServiceLineSerializer(serializers.ModelSerializer):
@@ -93,13 +100,12 @@ class ProjectReadSerializer(serializers.ModelSerializer):
     task_type = serializers.SerializerMethodField()
     service_type = serializers.SerializerMethodField()
     codes = serializers.SerializerMethodField()
+    closed_date = serializers.DateField(read_only=True)
+    status_started_at = serializers.DateField(read_only=True)
 
     class Meta:
         model = Project
         fields = '__all__'
-        read_only_fields = [
-            'closed_date',
-        ]
 
     def get_status(self, obj):
         return obj.status.name if obj.status else None
@@ -141,13 +147,12 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     service_type = serializers.ReadOnlyField(source='service_type.name')
     tasks = serializers.SerializerMethodField()
     codes = serializers.SerializerMethodField()
+    closed_date = serializers.DateField(read_only=True)
+    status_started_at = serializers.DateField(read_only=True)
 
     class Meta:
         model = Project
         fields = '__all__'
-        read_only_fields = [
-            'closed_date',
-        ]
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(task_type=obj.task_type, is_active=True)
@@ -161,10 +166,6 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
-    status = serializers.PrimaryKeyRelatedField(
-        queryset=ProjectStatus.objects.all(),
-        required=True,
-    )
     country = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
         required=True,
@@ -193,6 +194,13 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         queryset=ServiceType.objects.all(),
         required=True,
     )
+    status = serializers.PrimaryKeyRelatedField(
+        queryset=ProjectStatus.objects.all(),
+        required=True,
+    )
+    status_started_at = serializers.DateField(
+        write_only=True
+    )
 
     class Meta:
         model = Project
@@ -200,3 +208,57 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'closed_date',
         ]
+
+    def create(self, validated_data):
+        status_started_at = validated_data.pop('status_started_at')
+        status = validated_data.pop('status')
+
+        project = Project.objects.create(
+            **validated_data,
+            status=status
+        )
+
+        create_project_status_history(
+            project=project,
+            status=status,
+            started_at=status_started_at
+        )
+
+        return project
+
+
+class ProjectUpdateSerializer(serializers.ModelSerializer):
+    status_started_at = serializers.DateField(
+        required=False
+    )
+
+    class Meta:
+        model = Project
+        fields = '__all__'
+
+    def validate(self, attrs):
+        if attrs.get('status') and not attrs.get('status_started_at'):
+            raise serializers.ValidationError({
+                'message':
+                '\'status_started_at\' field is required when changing status.'
+            })
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        status = validated_data.pop('status', None)
+        status_started_at = validated_data.pop('status_started_at', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        if status is not None and status_started_at is not None:
+            create_project_status_history(
+                project=instance,
+                status=status,
+                started_at=status_started_at
+            )
+
+        return instance

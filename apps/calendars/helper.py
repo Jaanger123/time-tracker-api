@@ -1,6 +1,7 @@
 REPORT_COLUMNS = [
     'date',
     'user_email',
+    'user_country_code',
     'country_code',
     'user_department',
     'position',
@@ -13,12 +14,14 @@ REPORT_COLUMNS = [
     'task_type_name',
     'task_name',
     'description',
+    'is_approved',
 ]
 
 REPORT_HEADERS = [
     'Date',
     'User Email',
-    'Country',
+    'User Country',
+    'Project Country',
     'User Department',
     'Position',
     'Grade',
@@ -30,4 +33,5 @@ REPORT_HEADERS = [
     'Task Type',
     'Task',
     'Description',
+    'Is Approved',
 ]

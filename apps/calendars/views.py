@@ -16,13 +16,14 @@ from django.db.models import F
 from django.http import HttpResponse
 
 from apps.calendars.pagination import TimeEntryPagination
+from apps.calendars.services.manager_approval import get_manager_approval_data
 from apps.reports.attendance_excel import export_attendance_excel
 from apps.reports.attendance_report import build_report
 
 from .utils import get_country, filter_report_by_params, filter_leaves_by_params
 from .services.monitoring import get_monitoring_data
 from .services.dashboard import get_dashboard_data
-from .permissions import IsOwnerOrAdmin
+from .permissions import IsDepartmentManager, IsOwnerOrAdmin
 from .serializers import *
 from .models import *
 from .helper import *
@@ -192,6 +193,7 @@ class TimeEntryViewSet(ModelViewSet):
                 'task_name',
                 'description',
                 'status_name',
+                'is_approved',
             )
             .order_by('user_email', 'date', 'id')
         )
@@ -286,6 +288,53 @@ class TimeEntryViewSet(ModelViewSet):
         page = self.paginate_queryset(report['report'])
 
         return self.get_paginated_response(page)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='manager-approval',
+        permission_classes=[
+            IsAuthenticated,
+            IsDepartmentManager,
+        ],
+    )
+    def manager_approval(self, request):
+        data = get_manager_approval_data(request)
+
+        page = self.paginate_queryset(data)
+
+        return self.get_paginated_response(page)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='approve',
+        permission_classes=[
+            IsAuthenticated,
+            IsDepartmentManager,
+        ],
+    )
+    def approve(self, request):
+        ids = request.data.get('ids', [])
+
+        if not ids:
+            return Response(
+                {'message': 'No time entries provided.'},
+                status.HTTP_400_BAD_REQUEST,
+            )
+        print(ids)
+        entries = TimeEntry.objects.filter(
+            id__in=ids,
+            project_code__project__manager=request.user,
+            is_approved=False,
+        )
+
+        with transaction.atomic():
+            updated_count = entries.update(
+                is_approved=True,
+            )
+
+        return Response({'approved_count': updated_count})
 
 
 class CalendarViewSet(ModelViewSet):

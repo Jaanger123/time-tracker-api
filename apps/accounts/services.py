@@ -36,7 +36,6 @@ def create_user_status_history(
         .first()
     )
 
-    print(latest)
     if latest and user.status_id != latest.status_id:
         user.status = latest.status
         user.save(update_fields=['status'])
