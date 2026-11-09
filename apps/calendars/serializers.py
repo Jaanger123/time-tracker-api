@@ -263,6 +263,15 @@ class TimeEntryWriteSerializer(serializers.ModelSerializer):
 
         return entries[-1]
 
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        setattr(instance, 'is_approved', False)
+        instance.save()
+
+        return instance
+
 
 class CalendarSerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()

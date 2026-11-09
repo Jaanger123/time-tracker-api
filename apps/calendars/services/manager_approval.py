@@ -19,6 +19,7 @@ def get_manager_approval_data(request):
             'user__grade',
             'project_code',
             'project_code__project',
+            'task',
         )
         .order_by(
             'user__email',
@@ -33,10 +34,14 @@ def get_manager_approval_data(request):
     users = defaultdict(
         lambda: {
             'user': None,
+            'total_hours': 0,
+            'approved_hours': 0,
             'projects': defaultdict(
                 lambda: {
                     'project': None,
                     'project_code': None,
+                    'total_hours': 0,
+                    'approved_hours': 0,
                     'entries': [],
                 }
             ),
@@ -47,6 +52,11 @@ def get_manager_approval_data(request):
         user_data = users[entry.user_id]
         user_data['user'] = entry.user
 
+        user_data['total_hours'] += entry.hours
+
+        if entry.is_approved:
+            user_data['approved_hours'] += entry.hours
+
         project_data = user_data['projects'][
             entry.project_code_id
         ]
@@ -54,11 +64,18 @@ def get_manager_approval_data(request):
         project_data['project'] = entry.project_code.project
         project_data['project_code'] = entry.project_code
 
+        project_data['total_hours'] += entry.hours
+
+        if entry.is_approved:
+            project_data['approved_hours'] += entry.hours
+
         project_data['entries'].append({
             'id': entry.id,
             'date': entry.date,
             'hours': entry.hours,
             'is_approved': entry.is_approved,
+            'task': entry.task.name,
+            'description': entry.description,
         })
 
     result = []
@@ -66,15 +83,23 @@ def get_manager_approval_data(request):
     for user_data in users.values():
         user = user_data['user']
 
+        user_total_hours = user_data['total_hours']
+        user_approved_hours = user_data['approved_hours']
+
         projects = []
 
         for project_data in user_data['projects'].values():
             project = project_data['project']
             project_code = project_data['project_code']
 
+            total_hours = project_data['total_hours']
+            approved_hours = project_data['approved_hours']
+
             projects.append({
                 'project_id': project.id,
                 'project_code': project_code.code,
+                'approved_hours': approved_hours,
+                'total_hours': total_hours,
                 'entries': project_data['entries'],
             })
 
@@ -82,6 +107,8 @@ def get_manager_approval_data(request):
             'user_id': user.id,
             'full_name': f'{user.last_name} {user.first_name}',
             'email': user.email,
+            'approved_hours': user_approved_hours,
+            'total_hours': user_total_hours,
             'projects': projects,
         })
 

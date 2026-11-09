@@ -11,17 +11,32 @@ def create_project_status_history(
     status,
     started_at
 ):
-    duplicate_exists = ProjectStatusHistory.objects.filter(
-        project=project,
-        status=status,
-        started_at=started_at,
-    ).exists()
+    history = (
+        ProjectStatusHistory.objects
+        .filter(
+            project=project,
+            status=status,
+        )
+        .first()
+    )
 
-    if duplicate_exists:
-        raise ValidationError({
-            'message': 
-                'This project already has this status with the same start date.'
-        })
+    if history:
+        if history.started_at != started_at:
+            history.started_at = started_at
+            history.save(update_fields=['started_at'])
+    else:
+        history = ProjectStatusHistory.objects.create(
+            project=project,
+            status=status,
+            started_at=started_at,
+        )
+
+    latest = (
+        project.status_history
+        .select_related('status')
+        .order_by('-started_at', '-id')
+        .first()
+    )
 
     history = ProjectStatusHistory.objects.create(
         project=project,
