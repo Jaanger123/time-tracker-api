@@ -20,6 +20,8 @@ def create_project_status_history(
         .first()
     )
 
+    print(started_at, history.started_at)
+
     if history:
         if history.started_at != started_at:
             history.started_at = started_at
@@ -36,12 +38,6 @@ def create_project_status_history(
         .select_related('status')
         .order_by('-started_at', '-id')
         .first()
-    )
-
-    history = ProjectStatusHistory.objects.create(
-        project=project,
-        status=status,
-        started_at=started_at,
     )
 
     latest = (
