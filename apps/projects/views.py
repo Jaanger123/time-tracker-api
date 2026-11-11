@@ -208,16 +208,28 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
         )
 
         code = self.request.query_params.get('code')
-        code_created_at = self.request.query_params.get('code_created_at')
 
         if code:
             export_queryset = export_queryset.filter(
                 code__icontains=code
             )
 
-        if code_created_at:
+        code_created_at_after = self.request.query_params.get(
+            'code_created_at_after'
+        )
+
+        code_created_at_before = self.request.query_params.get(
+            'code_created_at_before'
+        )
+
+        if code_created_at_after:
             export_queryset = export_queryset.filter(
-                created_at__date=code_created_at
+                created_at__date__gte=code_created_at_after
+            )
+
+        if code_created_at_before:
+            export_queryset = export_queryset.filter(
+                created_at__date__lte=code_created_at_before
             )
 
         export_queryset = (

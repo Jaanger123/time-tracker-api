@@ -8,12 +8,12 @@ class ProjectFilter(django_filters.FilterSet):
         field_name='projectcode__code',
         lookup_expr='icontains'
     )
-    code_created_at = django_filters.DateFilter(
+    code_created_at = django_filters.DateFromToRangeFilter(
         field_name='projectcode__created_at',
-        lookup_expr='date'
     )
-    agreement_date = django_filters.DateFilter(
-        field_name='agreement_date'
+
+    agreement_date = django_filters.DateFromToRangeFilter(
+        field_name='agreement_date',
     )
     is_code_recurring = django_filters.BooleanFilter(
         field_name='is_code_recurring'
