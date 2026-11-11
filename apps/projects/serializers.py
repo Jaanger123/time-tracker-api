@@ -132,9 +132,28 @@ class ProjectReadSerializer(serializers.ModelSerializer):
         return obj.service_type.name if obj.service_type else None
 
     def get_codes(self, obj):
-        codes = ProjectCode.objects.filter(project=obj.id).order_by('created_at')
+        request = self.context.get('request')
 
-        return ProjectCodeReadSerializer(codes, many=True).data
+        queryset = obj.projectcode_set.all()
+
+        code = request.query_params.get('code')
+        code_created_at = request.query_params.get('code_created_at')
+
+        if code:
+            queryset = queryset.filter(
+                code__icontains=code
+            )
+
+        if code_created_at:
+            queryset = queryset.filter(
+                created_at__date=code_created_at
+            )
+
+        return ProjectCodeReadSerializer(
+            queryset,
+            many=True,
+            context=self.context,
+        ).data
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):

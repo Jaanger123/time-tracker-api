@@ -149,7 +149,7 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
         'client', 
         'department', 
         'service_line',
-        'task_type'
+        'task_type',
     ).order_by('id')
     serializer_class = ProjectReadSerializer
     permission_classes = [IsAuthenticated]
@@ -176,6 +176,7 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
             'task_type_name',
             'service_type_name',
             'agreement_date',
+            'code_created_at',
             'closed_date',
         ]
 
@@ -195,10 +196,70 @@ class ProjectViewSet(ModelViewSet, AdminWritePermissionMixin):
             'Task Type',
             'Service Type',
             'Agreement Date',
+            'Code Created At',
             'Closed Date',
         ]
 
-        return generate_excel(queryset, 'Projects', columns, headers)
+        project_ids = queryset.values('id')
+
+        export_queryset = (
+            ProjectCode.objects
+            .filter(project_id__in=project_ids)
+        )
+
+        code = self.request.query_params.get('code')
+        code_created_at = self.request.query_params.get('code_created_at')
+
+        if code:
+            export_queryset = export_queryset.filter(
+                code__icontains=code
+            )
+
+        if code_created_at:
+            export_queryset = export_queryset.filter(
+                created_at__date=code_created_at
+            )
+
+        export_queryset = (
+            export_queryset
+            .select_related(
+                'project',
+                'project__client',
+                'project__country',
+                'project__status',
+                'project__manager',
+                'project__department',
+                'project__service_line',
+                'project__task_type',
+                'project__service_type',
+            )
+            .annotate(
+                description=F('project__description'),
+                entity=F('project__entity'),
+                ic=F('project__ic'),
+                client_name=F('project__client__name'),
+                country_code=F('project__country__code'),
+                is_chargeable=F('project__is_chargeable'),
+                is_code_recurring=F('project__is_code_recurring'),
+                status_name=F('project__status__name'),
+                manager_email=F('project__manager__email'),
+                department_name=F('project__department__name'),
+                service_line_name=F('project__service_line__name'),
+                task_type_name=F('project__task_type__name'),
+                service_type_name=F('project__service_type__name'),
+                agreement_date=F('project__agreement_date'),
+                code_created_at=F('created_at'),
+                closed_date=F('project__closed_date'),
+            )
+            .order_by('project_id', 'created_at')
+        )
+
+        return generate_excel(
+            export_queryset,
+            'Projects',
+            columns,
+            headers,
+        )
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
