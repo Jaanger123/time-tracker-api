@@ -1,15 +1,14 @@
 from django.db import transaction
+from django.utils import timezone
 
-from rest_framework.exceptions import ValidationError
-
-from apps.projects.models import ProjectStatusHistory
+from apps.projects.models import ProjectStatusHistory, ProjectStatus
 
 
 @transaction.atomic
 def create_project_status_history(
     project,
     status,
-    started_at
+    started_at,
 ):
     history = (
         ProjectStatusHistory.objects
@@ -19,8 +18,6 @@ def create_project_status_history(
         )
         .first()
     )
-
-    print(started_at, history.started_at)
 
     if history:
         if history.started_at != started_at:
@@ -40,15 +37,19 @@ def create_project_status_history(
         .first()
     )
 
-    latest = (
-        project.status_history
-        .select_related('status')
-        .order_by('-started_at', '-id')
-        .first()
-    )
-
-    if latest and project.status_id != latest.status_id:
+    if latest:
         project.status = latest.status
-        project.save(update_fields=['status'])
+
+        if latest.status.name == ProjectStatus.DELIVERED:
+            project.closed_date = latest.started_at
+        else:
+            project.closed_date = None
+
+        project.save(
+            update_fields=[
+                'status',
+                'closed_date',
+            ]
+        )
 
     return history
