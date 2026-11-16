@@ -102,8 +102,6 @@ class ClientViewSet(ModelViewSet):
         )
 
     def paginate_queryset(self, queryset):
-        
-
         return super().paginate_queryset(queryset)
 
     def get_serializer_class(self):

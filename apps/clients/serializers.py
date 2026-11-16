@@ -4,7 +4,7 @@ from rest_framework import serializers
 from apps.accounts.models import Country
 
 from apps.projects.serializers import ProjectCodeReadSerializer, ProjectReadSerializer
-from apps.projects.models import ProjectCode
+from apps.projects.models import ProjectCode, ProjectStatus
 from .models import *
 
 
@@ -55,7 +55,7 @@ class ClientDetailSerializer(serializers.ModelSerializer):
 
     def get_project_codes(self, obj):
         project_codes = ProjectCode.objects.select_related('project', 'project__client') \
-            .filter(project__client=obj)
+            .filter(project__client=obj, project__status__name=ProjectStatus.IN_PROGRESS)
 
         return ProjectCodeReadSerializer(project_codes, many=True).data
 

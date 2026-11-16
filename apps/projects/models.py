@@ -19,6 +19,7 @@ class ServiceType(models.Model):
 
 class ProjectStatus(models.Model):
     DELIVERED = 'Delivered'
+    IN_PROGRESS = 'In progress'
 
     name = models.CharField(max_length=100, unique=True)
 
