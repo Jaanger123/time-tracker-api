@@ -80,7 +80,7 @@ def get_entries_by_user(country_id, start_date, end_date):
         .filter(
             user__country=country_id,
             date__range=(start_date, end_date),
-            is_approved=True,
+            # is_approved=True,
         )
         .values('user_id', 'date')
         .annotate(total_hours=Sum('hours'))
@@ -124,7 +124,7 @@ def get_missing_days_for_user(
         .filter(
             user=user,
             date__range=(start_date, end_date),
-            is_approved=True,
+            # is_approved=True,
         )
         .values('date')
         .annotate(total_hours=Sum('hours'))
