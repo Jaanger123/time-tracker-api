@@ -10,7 +10,13 @@ class UserAdmin(BaseUserAdmin):
 
     list_display = ('email', 'first_name', 'last_name', 'is_staff', 'is_active')
     list_filter = ('email', 'is_staff', 'is_active', 'is_superuser')
-    readonly_fields = ('activation_code', 'date_joined', 'last_login')
+    readonly_fields = (
+        'activation_code', 
+        'password_reset_code', 
+        'password_reset_expires_at', 
+        'date_joined', 
+        'last_login'
+    )
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
@@ -22,6 +28,8 @@ class UserAdmin(BaseUserAdmin):
             'date_left', 
             'country',
             'activation_code',
+            'password_reset_code',
+            'password_reset_expires_at',
             'status'
         )}),
         (_('Position info'), {'fields': ('position', 'grade')}),
