@@ -11,6 +11,7 @@ from django.db.models import Q
 
 from rest_framework import serializers
 
+from.validators import validate_time_entry_period
 from .utils import safe_filename
 from .models import *
 
@@ -139,6 +140,10 @@ class TimeEntryWriteSerializer(serializers.ModelSerializer):
         end_date = attrs.get('end_date')
 
         if request.method in ['PUT', 'PATCH']:
+            entry_date = self.instance.date
+
+            validate_time_entry_period(entry_date)
+
             return attrs
 
         if 'date' in attrs:
@@ -153,6 +158,8 @@ class TimeEntryWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'message': '\'start_date\' cannot be greater than \'end_date\'.'}
             )
+
+        validate_time_entry_period(start_date, end_date)
 
         return attrs
 

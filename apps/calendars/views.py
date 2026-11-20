@@ -91,6 +91,13 @@ class TimeEntryViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
     pagination_class = TimeEntryPagination
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        validate_time_entry_period(instance.date)
+
+        return super().destroy(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return TimeEntryReadSerializer
