@@ -198,6 +198,8 @@ class UserReadSerializer(serializers.ModelSerializer):
     country_id = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     status_started_at = serializers.DateField(read_only=True)
+    hired = serializers.DateField(read_only=True)
+    fired = serializers.DateField(read_only=True)
 
     class Meta:
         model = User
@@ -218,8 +220,8 @@ class UserReadSerializer(serializers.ModelSerializer):
             'status',
             'status_started_at',
             'is_active',
-            'date_joined',
-            'date_left',
+            'hired',
+            'fired',
         ]
 
     def get_role(self, obj):

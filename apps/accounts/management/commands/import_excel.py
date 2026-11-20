@@ -54,7 +54,6 @@ class Command(BaseCommand):
         # send_activation_email
         # df = pd.read_excel('time_tracker_tables.xlsx', sheet_name='projects_projectcode')
         # User.objects.all().delete()
-        # print(df['date_joined'])
         # df = df.fillna('')
         # send_activation_email(User.objects.filter(email='jbarakanov@gmail.com').first())
         # for user in users:

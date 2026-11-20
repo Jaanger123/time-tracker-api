@@ -265,7 +265,6 @@ class UserViewSet(ModelViewSet):
         'country_code',
         'role_name',
         'status_name',
-        'date_joined',
     ]
 
     def _export_excel(self, queryset):
@@ -281,8 +280,8 @@ class UserViewSet(ModelViewSet):
             'department_name',
             'department_role_name',
             'country_code',
-            'date_joined',
-            'date_left',
+            'hired',
+            'fired',
         ]
 
         headers = [
@@ -297,8 +296,8 @@ class UserViewSet(ModelViewSet):
             'Department',
             'Department Role',
             'Country',
-            'Date Joined',
-            'Date Left',
+            'Hired',
+            'Fired',
         ]
 
         return generate_excel(queryset, 'Users', columns, headers)
@@ -333,6 +332,26 @@ class UserViewSet(ModelViewSet):
             .values('started_at')[:1]
         )
 
+        hired_date = (
+            UserStatusHistory.objects
+            .filter(
+                user=OuterRef('pk'),
+                status__name=UserStatus.REGISTERED,
+            )
+            .order_by('started_at', 'id')
+            .values('started_at')[:1]
+        )
+
+        fired_date = (
+            UserStatusHistory.objects
+            .filter(
+                user=OuterRef('pk'),
+                status__name=UserStatus.FIRED,
+            )
+            .order_by('-started_at', '-id')
+            .values('started_at')[:1]
+        )
+
         return queryset.annotate(
             position_name=F('position__name'),
             department_name=F('department__name'),
@@ -343,6 +362,8 @@ class UserViewSet(ModelViewSet):
             status_name=F('status__name'),
             status_started_at=Subquery(latest_status_date),
             grade_started_at=Subquery(latest_grade_date),
+            hired=Subquery(hired_date),
+            fired=Subquery(fired_date),
         )
 
     def get_serializer_class(self):

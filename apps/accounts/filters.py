@@ -40,12 +40,21 @@ class UserFilter(django_filters.FilterSet):
         field_name='role__name',
         lookup_expr='icontains'
     )
-    joined_after = django_filters.DateFilter(
-        field_name='date_joined',
+    hired_after = django_filters.DateFilter(
+        field_name='hired',
         lookup_expr='gte'
     )
-    joined_before = django_filters.DateFilter(
-        field_name='date_joined',
+    hired_before = django_filters.DateFilter(
+        field_name='hired',
+        lookup_expr='lte'
+    )
+
+    fired_after = django_filters.DateFilter(
+        field_name='fired',
+        lookup_expr='gte'
+    )
+    fired_before = django_filters.DateFilter(
+        field_name='fired',
         lookup_expr='lte'
     )
     status_name = django_filters.CharFilter(
