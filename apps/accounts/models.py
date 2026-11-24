@@ -33,6 +33,8 @@ class Grade(models.Model):
 
 
 class DepartmentRole(models.Model):
+    MANAGING_PARTNER = 'Managing Partner'
+    PARTNER = 'Partner'
     MANAGER = 'Manager'
     MEMBER = 'Member'
 

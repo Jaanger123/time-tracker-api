@@ -16,14 +16,14 @@ from django.db.models import F
 from django.http import HttpResponse
 
 from apps.calendars.pagination import TimeEntryPagination
-from apps.calendars.services.manager_approval import get_manager_approval_data
+from apps.calendars.services.approval import get_approval_data, get_approvable_time_entries
 from apps.reports.attendance_excel import export_attendance_excel
 from apps.reports.attendance_report import build_report
 
 from .utils import get_country, filter_report_by_params, filter_leaves_by_params
 from .services.monitoring import get_monitoring_data
 from .services.dashboard import get_dashboard_data
-from .permissions import IsDepartmentManager, IsOwnerOrAdmin
+from .permissions import IsOwnerOrAdmin, IsTimeEntryApprover
 from .serializers import *
 from .models import *
 from .helper import *
@@ -299,14 +299,14 @@ class TimeEntryViewSet(ModelViewSet):
     @action(
         detail=False,
         methods=['get'],
-        url_path='manager-approval',
+        url_path='approval',
         permission_classes=[
             IsAuthenticated,
-            IsDepartmentManager,
+            IsTimeEntryApprover,
         ],
     )
     def manager_approval(self, request):
-        data = get_manager_approval_data(request)
+        data = get_approval_data(request)
 
         page = self.paginate_queryset(data)
 
@@ -318,26 +318,51 @@ class TimeEntryViewSet(ModelViewSet):
         url_path='approve',
         permission_classes=[
             IsAuthenticated,
-            IsDepartmentManager,
+            IsTimeEntryApprover,
         ],
     )
     def approve(self, request):
         ids = request.data.get('ids', [])
 
-        if not ids:
+        if not isinstance(ids, list) or not ids:
             return Response(
                 {'message': 'No time entries provided.'},
-                status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        print(ids)
-        entries = TimeEntry.objects.filter(
-            id__in=ids,
-            project_code__project__manager=request.user,
-            is_approved=False,
-        )
+
+        try:
+            ids = {int(pk) for pk in ids}
+        except (TypeError, ValueError):
+            return Response(
+                {'message': 'Invalid time entry IDs.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         with transaction.atomic():
-            updated_count = entries.update(
+            entries = get_approvable_time_entries(
+                request.user
+            ).filter(id__in=ids)
+
+            found_ids = set(
+                entries
+                .select_for_update()
+                .values_list('id', flat=True)
+            )
+
+            if found_ids != ids:
+                return Response(
+                    {
+                        'message': (
+                            'Some time entries do not belong '
+                            'to your approval scope.'
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            updated_count = entries.filter(
+                is_approved=False,
+            ).update(
                 is_approved=True,
             )
 

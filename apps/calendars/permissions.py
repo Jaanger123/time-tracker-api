@@ -24,3 +24,17 @@ class IsDepartmentManager(BasePermission):
             and request.user.department_role.name
             == DepartmentRole.MANAGER
         )
+
+class IsTimeEntryApprover(BasePermission):
+    message = 'You do not have permission to access this endpoint.'
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.department_role
+            and request.user.department_role.name in [
+                DepartmentRole.MANAGING_PARTNER,
+                DepartmentRole.PARTNER,
+                DepartmentRole.MANAGER,
+            ]
+        )

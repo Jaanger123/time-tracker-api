@@ -56,6 +56,8 @@ class PositionSerializer(serializers.ModelSerializer):
 class DepartmentSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     managers = serializers.SerializerMethodField()
+    partners = serializers.SerializerMethodField()
+    managing_partners = serializers.SerializerMethodField()
 
     class Meta:
         model = Department
@@ -64,7 +66,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
     def get_members(self, obj):
         members = User.objects.filter(
             department=obj,
-            department_role__name='Member'
+            department_role__name=DepartmentRole.MEMBER
         ).distinct()
 
         return UserReadSerializer(members, many=True).data
@@ -72,7 +74,23 @@ class DepartmentSerializer(serializers.ModelSerializer):
     def get_managers(self, obj):
         managers = User.objects.filter(
             department=obj, 
-            department_role__name='Manager'
+            department_role__name=DepartmentRole.MANAGER
+        ).distinct()
+
+        return UserReadSerializer(managers, many=True).data
+
+    def get_partners(self, obj):
+        managers = User.objects.filter(
+            department=obj, 
+            department_role__name=DepartmentRole.PARTNER
+        ).distinct()
+
+        return UserReadSerializer(managers, many=True).data
+
+    def get_managing_partners(self, obj):
+        managers = User.objects.filter(
+            department=obj, 
+            department_role__name=DepartmentRole.MANAGING_PARTNER
         ).distinct()
 
         return UserReadSerializer(managers, many=True).data

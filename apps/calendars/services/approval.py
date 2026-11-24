@@ -1,16 +1,69 @@
 from collections import defaultdict
 
+from django.contrib.auth import get_user_model
+from django.db.models import Exists, OuterRef, Q
+
 from apps.calendars.utils import filter_manager_approval_by_params
 from apps.calendars.models import TimeEntry
+from apps.accounts.models import DepartmentRole
 
 
-def get_manager_approval_data(request):
-    queryset = (
-        TimeEntry.objects
-        .filter(
-            project_code__isnull=False,
-            project_code__project__manager=request.user,
+User = get_user_model()
+
+def get_approvable_time_entries(user):
+    queryset = TimeEntry.objects.filter(
+        project_code__isnull=False,
+    )
+
+    role = user.department_role.name
+
+    if role == DepartmentRole.MANAGING_PARTNER:
+        department_has_partner = User.objects.filter(
+            department_id=OuterRef('user__department_id'),
+            department_role__name=DepartmentRole.PARTNER,
         )
+
+        queryset = (
+            queryset
+            .annotate(
+                department_has_partner=Exists(
+                    department_has_partner
+                )
+            )
+            .filter(
+                Q(
+                    user__department_role__name=DepartmentRole.PARTNER
+                )
+                |
+                (
+                    Q(
+                        user__department_role__name=DepartmentRole.MANAGER
+                    )
+                    & Q(department_has_partner=False)
+                )
+            )
+        )
+
+    elif role == DepartmentRole.PARTNER:
+        queryset = queryset.filter(
+            user__department_id=user.department_id,
+            user__department_role__name=DepartmentRole.MANAGER,
+        )
+
+    elif role == DepartmentRole.MANAGER:
+        queryset = queryset.filter(
+            project_code__project__manager=user,
+            user__department_role__name=DepartmentRole.MEMBER,
+        )
+
+    else:
+        return queryset.none()
+
+    return queryset
+
+def get_approval_data(request):
+    queryset = (
+        get_approvable_time_entries(request.user)
         .select_related(
             'user',
             'user__country',
