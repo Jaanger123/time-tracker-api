@@ -81,10 +81,14 @@ class TaskImportSerializer(serializers.Serializer):
 
 class ProjectCodeReadSerializer(serializers.ModelSerializer):
     project = serializers.SerializerMethodField()
+    closed_date = serializers.DateField(
+        source='project.closed_date',
+        read_only=True
+    )
 
     class Meta:
         model = ProjectCode
-        fields = ['id', 'code', 'project', 'created_at']
+        fields = ['id', 'code', 'project', 'created_at', 'closed_date']
 
     def get_project(self, obj):
         return obj.project.id if obj.project else None
