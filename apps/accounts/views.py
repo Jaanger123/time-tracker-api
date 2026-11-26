@@ -386,9 +386,15 @@ class UserViewSet(ModelViewSet):
         send_activation_email(user)
 
     @action(detail=False, methods=['get'])
-    def managers(self, request):
-        managers = User.objects.filter(department_role__name='Manager')
-        serializer = UserReadSerializer(managers, many=True)
+    def supervisors(self, request):
+        supervisors = User.objects.filter(
+            department_role__name__in=[
+                DepartmentRole.MANAGING_PARTNER,
+                DepartmentRole.PARTNER,
+                DepartmentRole.MANAGER,
+            ]
+        )
+        serializer = UserReadSerializer(supervisors, many=True)
 
         return Response(serializer.data)
 

@@ -94,6 +94,7 @@ class ProjectReadSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     country = serializers.SerializerMethodField()
     manager = serializers.SerializerMethodField()
+    manager_name = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
     department = serializers.SerializerMethodField()
     service_line = serializers.SerializerMethodField()
@@ -115,6 +116,12 @@ class ProjectReadSerializer(serializers.ModelSerializer):
 
     def get_manager(self, obj):
         return obj.manager.email if obj.manager else None
+
+    def get_manager_name(self, obj):
+        if not obj.manager:
+            return None
+
+        return f'{obj.manager.first_name} {obj.manager.last_name}'.strip()
 
     def get_client(self, obj):
         return obj.client.name if obj.client else None
@@ -160,6 +167,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     status = serializers.ReadOnlyField(source='status.name')
     country = serializers.ReadOnlyField(source='country.code')
     manager = serializers.ReadOnlyField(source='manager.name')
+    manager_name = serializers.SerializerMethodField()
     client = serializers.ReadOnlyField(source='client.name')
     department = serializers.ReadOnlyField(source='department.name')
     service_line = serializers.ReadOnlyField(source='service_line.name')
@@ -172,6 +180,12 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = '__all__'
+
+    def get_manager_name(self, obj):
+        if not obj.manager:
+            return None
+
+        return f'{obj.manager.first_name} {obj.manager.last_name}'.strip()
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(task_type=obj.task_type, is_active=True)
