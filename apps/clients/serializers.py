@@ -1,9 +1,13 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.db.models import Q
 
 from rest_framework import serializers
-from apps.accounts.models import Country
 
-from apps.projects.serializers import ProjectCodeReadSerializer, ProjectReadSerializer
+from apps.accounts.models import Country
+from apps.projects.serializers import ProjectCodeReadSerializer
 from apps.projects.models import ProjectCode, ProjectStatus
 from .models import *
 
@@ -54,8 +58,25 @@ class ClientDetailSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_project_codes(self, obj):
-        project_codes = ProjectCode.objects.select_related('project', 'project__client') \
-            .filter(project__client=obj, project__status__name=ProjectStatus.IN_PROGRESS)
+        today = timezone.localdate()
+
+        current_month_start = today.replace(day=1)
+        previous_month_start = (
+            current_month_start - timedelta(days=1)
+        ).replace(day=1)
+
+        project_codes = (
+            ProjectCode.objects.select_related('project', 'project__client')
+            .filter(project__client=obj)
+            .filter(
+                Q(project__status__name=ProjectStatus.IN_PROGRESS)
+                |
+                Q(
+                    project__status__name=ProjectStatus.DELIVERED,
+                    project__closed_date__gte=previous_month_start,
+                )
+            )
+        )
 
         return ProjectCodeReadSerializer(project_codes, many=True).data
 
