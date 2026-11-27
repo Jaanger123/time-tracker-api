@@ -99,12 +99,22 @@ class ActivateUserAPIView(APIView):
         serializer = ActivateUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = get_object_or_404(
-            User,
-            email=serializer.validated_data['email'],
-            activation_code=serializer.validated_data['activation_code'],
-            is_active=False,
-        )
+        email = serializer.validated_data['email']
+        activation_code = serializer.validated_data['activation_code']
+
+        user = User.objects.filter(email=email).first()
+
+        if user and user.is_active:
+            return Response(
+                {'message': 'Your account is already activated.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not user or user.activation_code != activation_code:
+            return Response(
+                {'message': 'Invalid email or activation code.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         user.set_password(serializer.validated_data['password'])
         user.is_active = True

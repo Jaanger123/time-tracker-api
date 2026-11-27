@@ -45,10 +45,21 @@ def get_approvable_time_entries(user):
         )
 
     elif role == DepartmentRole.PARTNER:
-        queryset = queryset.filter(
-            user__department_id=user.department_id,
-            user__department_role__name=DepartmentRole.MANAGER,
-        )
+        department_has_managers = User.objects.filter(
+            department_id=user.department_id,
+            department_role__name=DepartmentRole.MANAGER,
+        ).exists()
+
+        if department_has_managers:
+            queryset = queryset.filter(
+                user__department_id=user.department_id,
+                user__department_role__name=DepartmentRole.MANAGER,
+            )
+        else:
+            queryset = queryset.filter(
+                project_code__project__manager=user,
+                user__department_role__name=DepartmentRole.MEMBER,
+            )
 
     elif role == DepartmentRole.MANAGER:
         queryset = queryset.filter(
